@@ -33,8 +33,9 @@ func Run(config Config) {
 func newRouter() *mux.Router {
 	r := mux.NewRouter()
 
-	r.Handle("/secret", handlers.Secret)
-	r.HandleFunc("/", handlers.Home)
+	s := r.PathPrefix("/api/2/").Subrouter()
+	s.HandleFunc("/secret", handlers.Secret)
+	s.HandleFunc("/", handlers.Home)
 
 	return r
 }

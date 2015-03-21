@@ -24,6 +24,13 @@ var levelToSymbol = map[int]string{
 	Verbose: "VERBOSE",
 }
 
+// Init sets up the initial internal state of the logging package. To ensure
+// consistent log statements, this method should be called prior to logging any
+// thing.
+func Init() {
+	log.SetFlags(log.Ldate | log.Ltime)
+}
+
 // SetLogLevel sets the verbosity of logging. The default is Info.
 func SetLogLevel(level int) {
 	logLevel = level
@@ -34,7 +41,7 @@ func Logf(level int, format string, args ...interface{}) {
 	if level <= logLevel {
 		symbol := levelToSymbol[level]
 		if symbol == "" {
-			symbol = "?"
+			symbol = levelToSymbol[Verbose]
 		}
 		format = symbol + " " + format
 		if level > 0 {

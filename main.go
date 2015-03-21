@@ -2,12 +2,11 @@ package main
 
 import (
 	"flag"
-	"log"
 	"runtime"
 
 	"github.com/GreatestGuys/pifuxelck-server-go/server"
 	"github.com/GreatestGuys/pifuxelck-server-go/server/db"
-	pifuxelckLog "github.com/GreatestGuys/pifuxelck-server-go/server/log"
+	"github.com/GreatestGuys/pifuxelck-server-go/server/log"
 )
 
 var port = flag.Int("port", 3000, "The port number to listen on.")
@@ -35,8 +34,8 @@ func main() {
 
 	flag.Parse()
 
-	log.SetFlags(log.Ldate | log.Ltime)
-	pifuxelckLog.SetLogLevel(*logLevel)
+	log.Init()
+	log.SetLogLevel(*logLevel)
 
 	server.Run(server.Config{
 		Port: *port,
