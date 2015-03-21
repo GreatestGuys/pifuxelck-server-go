@@ -17,7 +17,7 @@ var logLevel = Info
 
 var levelToSymbol = map[int]string{
 	Fatal:   "FATAL  ",
-	Error:   "Error  ",
+	Error:   "ERROR  ",
 	Warn:    "WARNING",
 	Info:    "INFO   ",
 	Debug:   "DEBUG  ",
