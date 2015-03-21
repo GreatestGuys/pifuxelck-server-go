@@ -1,16 +1,28 @@
 package main
 
-import "fmt"
-import "net/http"
-import "github.com/gorilla/mux"
+import (
+	"flag"
+	"log"
+	"runtime"
+
+	"github.com/GreatestGuys/pifuxelck-server-go/server"
+	pifuxelckLog "github.com/GreatestGuys/pifuxelck-server-go/server/log"
+)
+
+var port = flag.Int("port", 3000, "The port number to listen on.")
+
+var logLevel = flag.Int("verbosity", 3,
+	"The verbosity of the log statements. The larger the number, the more verbose.")
 
 func main() {
-	r := mux.NewRouter()
-	r.HandleFunc("/", HomeHandler)
-	http.Handle("/", r)
-	http.ListenAndServe(":8080", nil)
-}
+	runtime.GOMAXPROCS(runtime.NumCPU())
 
-func HomeHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Pifuxelck!")
+	flag.Parse()
+
+	log.SetFlags(log.Ldate | log.Ltime)
+	pifuxelckLog.SetLogLevel(*logLevel)
+
+	server.Run(server.Config{
+		Port: *port,
+	})
 }
