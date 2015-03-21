@@ -1,7 +1,6 @@
 package common
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/GreatestGuys/pifuxelck-server-go/server/log"
@@ -17,7 +16,6 @@ func AuthHandlerFunc(h func(string, http.ResponseWriter, *http.Request)) func(ht
 			log.Warnf("Unauthenticated attempt to access restricted resource %v.", r.URL)
 
 			w.WriteHeader(403)
-			fmt.Fprintf(w, "You need to be authenticated!")
 			return
 		}
 
