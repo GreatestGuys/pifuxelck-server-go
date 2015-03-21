@@ -6,6 +6,7 @@ import (
 
 const (
 	Fatal   = 0
+	Error   = iota
 	Warn    = iota
 	Info    = iota
 	Debug   = iota
@@ -16,6 +17,7 @@ var logLevel = Info
 
 var levelToSymbol = map[int]string{
 	Fatal:   "FATAL  ",
+	Error:   "Error  ",
 	Warn:    "WARNING",
 	Info:    "INFO   ",
 	Debug:   "DEBUG  ",
@@ -47,6 +49,11 @@ func Logf(level int, format string, args ...interface{}) {
 // will cause the server to panic.
 func Fatalf(format string, args ...interface{}) {
 	Logf(Fatal, format, args...)
+}
+
+// Errorf logs a format string at the Error log level.
+func Errorf(format string, args ...interface{}) {
+	Logf(Error, format, args...)
 }
 
 // Warnf logs a format string at the Warn log level.
