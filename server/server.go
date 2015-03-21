@@ -13,7 +13,7 @@ import (
 // Config defines all the options that can be configured for a running instance
 // of the pifuxelck server.
 type Config struct {
-	Port        int
+	Port     int
 	DBConfig db.Config
 }
 
