@@ -17,7 +17,8 @@ type User struct {
 	Password    string `json:"password,omitempty"`
 }
 
-// UserError is an error type that is returned
+// UserError is an error type that is returned when there is a problem
+// validating a user value.
 type UserError struct {
 	ID          []string `json:"id,omitempty"`
 	DisplayName []string `json:"display_name,omitempty"`
