@@ -7,7 +7,6 @@ import (
 
 	"github.com/GreatestGuys/pifuxelck-server-go/server/log"
 	"github.com/GreatestGuys/pifuxelck-server-go/server/models"
-	"github.com/GreatestGuys/pifuxelck-server-go/server/models/common"
 )
 
 // Message corresponds to the top level JSON object that is returned by all
@@ -15,26 +14,12 @@ import (
 type Message struct {
 	Errors *Errors      `json:"errors,omitempty"`
 	User   *models.User `json:"user,omitempty"`
-	Meta   *Meta        `json:"meta,omitempty"`
+	Meta   *models.Meta `json:"meta,omitempty"`
 }
 
 type Errors struct {
 	User *models.UserError `json:"user,omitempty"`
-	Meta *MetaError        `json:"meta,omitempty"`
-}
-
-// Meta encodes meta data that does not correspond to any particular model.
-type Meta struct {
-	Auth string `json:"auth,omitempty"`
-}
-
-// MetaError encodes errors that do not correspond to any particular model.
-type MetaError struct {
-	Encoding []string `json:"encoding,omitempty"`
-}
-
-func (e MetaError) Error() string {
-	return common.ModelErrorHelper(e)
+	Meta *models.MetaError `json:"meta,omitempty"`
 }
 
 // RespondServerError signals to the client that the server encountered an
@@ -83,18 +68,20 @@ func RespondSuccessNoContent(w http.ResponseWriter) {
 }
 
 // RequestMessage retrieves a Message from a given http request.
-func RequestMessage(r *http.Request) (*Message, *MetaError) {
+func RequestMessage(r *http.Request) (*Message, *models.MetaError) {
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Warnf("Unable to fully read request body due to error %v", err.Error())
-		return nil, &MetaError{Encoding: []string{"Invalid request body."}}
+		return nil, &models.MetaError{Encoding: []string{"Invalid request body."}}
 	}
 
 	msg := &Message{}
 	err = json.Unmarshal(b, &msg)
 	if err != nil {
 		log.Warnf("Unable to unmarshal request body due to error %v", err.Error())
-		return nil, &MetaError{Encoding: []string{"Unable to unmarshal request body."}}
+		return nil, &models.MetaError{
+			Encoding: []string{"Unable to unmarshal request body."},
+		}
 	}
 
 	return msg, nil

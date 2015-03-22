@@ -9,8 +9,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// Account creates an returns a router that is capable of handling all requests
-// to the /account/* path.
+// InstallAccountHandlers takes a gorilla router and installs /account/*
+// endpoints on it.
 func InstallAccountHandlers(r *mux.Router) {
 	s := r.PathPrefix("/account/").Subrouter()
 	s.HandleFunc("/login", accountLogin).Methods("POST")
@@ -24,15 +24,25 @@ func accountLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Debugf("Attempting to login as user %v.", msg.User.DisplayName)
-	auth, userErr := models.UserLogin(*msg.User)
+	log.Debugf("Attempting to look up user %#v.", msg.User.DisplayName)
+	id, userErr := models.UserLookupByPassword(*msg.User)
 	if userErr != nil {
 		common.RespondClientError(w, &common.Errors{User: userErr})
 		return
 	}
 
-	log.Debugf("Successfully logged in as user %v.", msg.User.DisplayName)
-	common.RespondSuccess(w, &common.Message{Meta: &common.Meta{Auth: auth}})
+	log.Debugf("Creating new auth token for %#v.", msg.User.DisplayName)
+	auth, metaErr := models.NewAuthToken(id)
+	if metaErr != nil {
+		common.RespondClientError(w, &common.Errors{Meta: metaErr})
+		return
+	}
+
+	log.Infof("Successfully logged in as user %#v.", msg.User.DisplayName)
+	common.RespondSuccess(w, &common.Message{
+		User: &models.User{ID: id, DisplayName: msg.User.DisplayName},
+		Meta: &models.Meta{Auth: auth},
+	})
 }
 
 func accountRegister(w http.ResponseWriter, r *http.Request) {
@@ -42,13 +52,14 @@ func accountRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Debugf("Attempting to register new user %v.", msg.User.DisplayName)
+	log.Debugf("Attempting to register new user %#v.", msg.User.DisplayName)
 	user, userErr := models.CreateUser(*msg.User)
 	if userErr != nil {
+		log.Debugf("Failed to register user %#v.", user.DisplayName, user.ID)
 		common.RespondClientError(w, &common.Errors{User: userErr})
 		return
 	}
 
-	log.Debugf("Successfully registered new user %v (%v).", user.DisplayName, user.ID)
+	log.Infof("Successfully registered new user %#v (%v).", user.DisplayName, user.ID)
 	common.RespondSuccess(w, &common.Message{User: user})
 }

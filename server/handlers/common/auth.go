@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/GreatestGuys/pifuxelck-server-go/server/log"
+	"github.com/GreatestGuys/pifuxelck-server-go/server/models"
 )
 
 // AuthHandlerFunc takes an function that takes a user ID, an
@@ -12,16 +13,15 @@ import (
 // made, and returns a 403 error.
 func AuthHandlerFunc(h func(string, http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.RawQuery != "password" {
-			log.Warnf("Unauthenticated attempt to access restricted resource %v.", r.URL)
-
-			w.WriteHeader(403)
+		auth := r.Header.Get("x-pifuxelck-auth")
+		userID, err := models.AuthTokenLookup(auth)
+		if err != nil {
+			log.Debugf("Invalid authentication token %#v.", auth)
+			RespondClientError(w, &Errors{Meta: err})
 			return
 		}
 
-		userID := "myUserId"
-
-		log.Verbosef("Successfully authenticated as user %v.", userID)
+		log.Debugf("Successfully authenticated as user %v.", userID)
 		h(userID, w, r)
 	}
 }
