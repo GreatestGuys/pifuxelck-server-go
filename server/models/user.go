@@ -38,6 +38,10 @@ func CreateUser(user User) (_ *User, userErr *UserError) {
 		}
 	}
 
+	if user.DisplayName == "" {
+		return nil, &UserError{DisplayName: []string{"Username must be non-empty."}}
+	}
+
 	hash, err := bcrypt.GenerateFromPassword(
 		[]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {

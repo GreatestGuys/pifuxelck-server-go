@@ -17,7 +17,7 @@ func AuthHandlerFunc(h func(string, http.ResponseWriter, *http.Request)) func(ht
 		userID, err := models.AuthTokenLookup(auth)
 		if err != nil {
 			log.Debugf("Invalid authentication token %#v.", auth)
-			RespondClientError(w, &Errors{Meta: err})
+			RespondClientError(w, &models.Errors{Meta: err})
 			return
 		}
 

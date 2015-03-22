@@ -2,25 +2,11 @@ package common
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/GreatestGuys/pifuxelck-server-go/server/log"
 	"github.com/GreatestGuys/pifuxelck-server-go/server/models"
 )
-
-// Message corresponds to the top level JSON object that is returned by all
-// end points.
-type Message struct {
-	Errors *Errors      `json:"errors,omitempty"`
-	User   *models.User `json:"user,omitempty"`
-	Meta   *models.Meta `json:"meta,omitempty"`
-}
-
-type Errors struct {
-	User *models.UserError `json:"user,omitempty"`
-	Meta *models.MetaError `json:"meta,omitempty"`
-}
 
 // RespondServerError signals to the client that the server encountered an
 // unexpected error and was unable to respond. This method should only be used
@@ -32,8 +18,8 @@ func RespondServerError(w http.ResponseWriter) {
 
 // RespondSuccess signals to the client that the query was a success and returns
 // an encoded Message.
-func RespondClientError(w http.ResponseWriter, r *Errors) {
-	b, err := json.Marshal(Message{Errors: r})
+func RespondClientError(w http.ResponseWriter, r *models.Errors) {
+	b, err := json.Marshal(models.Message{Errors: r})
 	if err != nil {
 		log.Errorf("Unable to marshal response %v, due to error %v.", r, err.Error())
 		RespondServerError(w)
@@ -46,7 +32,7 @@ func RespondClientError(w http.ResponseWriter, r *Errors) {
 
 // RespondSuccess signals to the client that the query was a success and returns
 // an encoded Message.
-func RespondSuccess(w http.ResponseWriter, r *Message) {
+func RespondSuccess(w http.ResponseWriter, r *models.Message) {
 	b, err := json.Marshal(r)
 	if err != nil {
 		log.Errorf("Unable to marshal response %v, due to error %v.", r, err.Error())
@@ -65,24 +51,4 @@ func RespondSuccess(w http.ResponseWriter, r *Message) {
 func RespondSuccessNoContent(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("{}"))
-}
-
-// RequestMessage retrieves a Message from a given http request.
-func RequestMessage(r *http.Request) (*Message, *models.MetaError) {
-	b, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		log.Warnf("Unable to fully read request body due to error %v", err.Error())
-		return nil, &models.MetaError{Encoding: []string{"Invalid request body."}}
-	}
-
-	msg := &Message{}
-	err = json.Unmarshal(b, &msg)
-	if err != nil {
-		log.Warnf("Unable to unmarshal request body due to error %v", err.Error())
-		return nil, &models.MetaError{
-			Encoding: []string{"Unable to unmarshal request body."},
-		}
-	}
-
-	return msg, nil
 }
