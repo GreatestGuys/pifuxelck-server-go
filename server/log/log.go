@@ -2,6 +2,9 @@ package log
 
 import (
 	"log"
+	"runtime"
+	"strconv"
+	"strings"
 )
 
 const (
@@ -36,49 +39,82 @@ func SetLogLevel(level int) {
 	logLevel = level
 }
 
-// Logf logs a format string method at the given log level.
-func Logf(level int, format string, args ...interface{}) {
-	if level <= logLevel {
-		symbol := levelToSymbol[level]
-		if symbol == "" {
-			symbol = levelToSymbol[Verbose]
+// chop removes the prefix of haystack up to and including the needle string. If
+// the needle is not found, haystack is returned as is.
+func chop(haystack, needle string) string {
+	i := strings.LastIndex(haystack, needle)
+	if i < 0 {
+		return haystack
+	}
+	return haystack[i+len(needle):]
+}
+
+func compress(path string) string {
+	parts := strings.Split(path, "/")
+	for i := 0; i < len(parts); i++ {
+		if i != len(parts)-1 {
+			parts[i] = parts[i][0:1]
 		}
-		format = symbol + " " + format
-		if level > 0 {
-			log.Printf(format, args...)
-		} else {
-			log.Panicf(format, args...)
-		}
+	}
+	return strings.Join(parts, "/")
+}
+
+func logf(level int, format string, args ...interface{}) {
+	if level > logLevel {
+		return
+	}
+
+	// Set context to be the relative path of the source file which all folders
+	// truncated to their first letter, e.g. this file would be s/l/log.go.
+	_, file, line, ok := runtime.Caller(2)
+	var context string
+	if !ok {
+		context = strings.Repeat("?", 10)
+	} else {
+		path := compress(chop(file, "/pifuxelck-server-go/"))
+		context = path + ":" + strconv.Itoa(line)
+	}
+
+	symbol := levelToSymbol[level]
+	if symbol == "" {
+		symbol = levelToSymbol[Verbose]
+	}
+
+	format = symbol + " [" + context + "] " + format
+	if level > 0 {
+		log.Printf(format, args...)
+	} else {
+		log.Panicf(format, args...)
 	}
 }
 
 // Fatalf logs a format string at the Fatal log level. Logging at this level
 // will cause the server to panic.
 func Fatalf(format string, args ...interface{}) {
-	Logf(Fatal, format, args...)
+	logf(Fatal, format, args...)
 }
 
 // Errorf logs a format string at the Error log level.
 func Errorf(format string, args ...interface{}) {
-	Logf(Error, format, args...)
+	logf(Error, format, args...)
 }
 
 // Warnf logs a format string at the Warn log level.
 func Warnf(format string, args ...interface{}) {
-	Logf(Warn, format, args...)
+	logf(Warn, format, args...)
 }
 
 // Infof logs a format string at the Info log level.
 func Infof(format string, args ...interface{}) {
-	Logf(Info, format, args...)
+	logf(Info, format, args...)
 }
 
 // Debugf logs a format string at the Info log level.
 func Debugf(format string, args ...interface{}) {
-	Logf(Debug, format, args...)
+	logf(Debug, format, args...)
 }
 
 // Verbosef logs a format string at the Info log level.
 func Verbosef(format string, args ...interface{}) {
-	Logf(Verbose, format, args...)
+	logf(Verbose, format, args...)
 }
