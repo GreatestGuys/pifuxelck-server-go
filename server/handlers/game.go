@@ -46,6 +46,8 @@ var gameCreate = common.AuthHandlerFunc(func(id string, w http.ResponseWriter, r
 	if errors != nil {
 		metricGameCreateFailure.Inc()
 		log.Debugf("Failed to create new game.")
+		common.RespondClientError(w, errors)
+		return
 	}
 
 	metricGameCreateSuccess.Inc()

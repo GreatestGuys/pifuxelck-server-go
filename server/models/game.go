@@ -89,7 +89,7 @@ func CreateGame(userId string, newGame NewGame) *Errors {
 				playerId, gameId, isDrawing)
 			if err != nil {
 				errors = &Errors{NewGame: &NewGameError{
-					Players: []string{"No such player " + playerId + "."},
+					Players: []string{"No such player id " + playerId + "."},
 				}}
 				return err
 			}
