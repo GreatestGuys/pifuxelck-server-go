@@ -41,6 +41,7 @@ func newRouter() *mux.Router {
 	s := r.PathPrefix("/api/2/").Subrouter()
 	handlers.InstallAccountHandlers(s)
 	handlers.InstallContactHandlers(s)
+	handlers.InstallGameHandlers(s)
 
 	return r
 }

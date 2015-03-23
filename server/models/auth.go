@@ -12,14 +12,14 @@ import (
 // NewAuthToken creates a new authentication token for the given user ID.
 // Presenting this token in the x-pifuxelck-auth header will authenticate the
 // request as coming from the user with the given id.
-func NewAuthToken(id string) (auth string, metaErr *MetaError) {
+func NewAuthToken(id string) (auth string, errors *Errors) {
 	pruneAuthTokens()
 
 	log.Debugf("Generating new random token for user with ID %v.", id)
 	r := make([]byte, 32)
 	_, err := randbo.New().Read(r)
 	if err != nil {
-		return "", &MetaError{App: []string{"Unable to login at this time."}}
+		return "", &Errors{App: []string{"Unable to login at this time."}}
 	}
 	auth = base64.URLEncoding.EncodeToString(r)
 
@@ -29,18 +29,18 @@ func NewAuthToken(id string) (auth string, metaErr *MetaError) {
 
 		if err != nil {
 			log.Debugf("Unable to create new authentication token, %v.", err)
-			metaErr = &MetaError{App: []string{"Unable to login at this time."}}
+			errors = &Errors{App: []string{"Unable to login at this time."}}
 			return err
 		}
 
 		return nil
 	})
-	return auth, metaErr
+	return auth, errors
 }
 
 // AuthTokenLookup takes an authentication token an returns the user ID that
 // corresponds to the given token.
-func AuthTokenLookup(auth string) (id string, metaErr *MetaError) {
+func AuthTokenLookup(auth string) (id string, errors *Errors) {
 	pruneAuthTokens()
 
 	db.WithTx(func(tx *sql.Tx) error {
@@ -50,13 +50,13 @@ func AuthTokenLookup(auth string) (id string, metaErr *MetaError) {
 		err := row.Scan(&id)
 		if err != nil {
 			log.Debugf("Unable to validate authentication token, %v.", err)
-			metaErr = &MetaError{App: []string{"Invalid authentication token."}}
+			errors = &Errors{App: []string{"Invalid authentication token."}}
 			return err
 		}
 
 		return nil
 	})
-	return id, metaErr
+	return id, errors
 }
 
 func pruneAuthTokens() {

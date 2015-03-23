@@ -60,47 +60,47 @@ func InstallAccountHandlers(r *mux.Router) {
 }
 
 func accountLogin(w http.ResponseWriter, r *http.Request) {
-	msg, err := common.RequestMessage(r)
+	user, err := common.RequestUserMessage(r)
 	if err != nil {
 		metricLoginFailure.Inc()
-		common.RespondClientError(w, &models.Errors{Meta: err})
+		common.RespondClientError(w, err)
 		return
 	}
 
-	log.Debugf("Attempting to look up user %#v.", msg.User.DisplayName)
-	id, userErr := models.UserLookupByPassword(*msg.User)
+	log.Debugf("Attempting to look up user %#v.", user.DisplayName)
+	id, userErr := models.UserLookupByPassword(*user)
 	if userErr != nil {
 		metricLoginFailure.Inc()
 		common.RespondClientError(w, &models.Errors{User: userErr})
 		return
 	}
 
-	log.Debugf("Creating new auth token for %#v.", msg.User.DisplayName)
-	auth, metaErr := models.NewAuthToken(id)
-	if metaErr != nil {
+	log.Debugf("Creating new auth token for %#v.", user.DisplayName)
+	auth, errors := models.NewAuthToken(id)
+	if errors != nil {
 		metricLoginFailure.Inc()
-		common.RespondClientError(w, &models.Errors{Meta: metaErr})
+		common.RespondClientError(w, errors)
 		return
 	}
 
 	metricLoginSuccess.Inc()
-	log.Infof("Successfully logged in as user %#v.", msg.User.DisplayName)
+	log.Infof("Successfully logged in as user %#v.", user.DisplayName)
 	common.RespondSuccess(w, &models.Message{
-		User: &models.User{ID: id, DisplayName: msg.User.DisplayName},
+		User: &models.User{ID: id, DisplayName: user.DisplayName},
 		Meta: &models.Meta{Auth: auth},
 	})
 }
 
 func accountRegister(w http.ResponseWriter, r *http.Request) {
-	msg, err := common.RequestMessage(r)
+	user, err := common.RequestUserMessage(r)
 	if err != nil {
 		metricRegisterFailure.Inc()
-		common.RespondClientError(w, &models.Errors{Meta: err})
+		common.RespondClientError(w, err)
 		return
 	}
 
-	log.Debugf("Attempting to register new user %#v.", msg.User.DisplayName)
-	user, userErr := models.CreateUser(*msg.User)
+	log.Debugf("Attempting to register new user %#v.", user.DisplayName)
+	user, userErr := models.CreateUser(*user)
 	if userErr != nil {
 		metricRegisterFailure.Inc()
 		log.Debugf("Failed to register user %#v.", user.DisplayName, user.ID)
@@ -114,19 +114,19 @@ func accountRegister(w http.ResponseWriter, r *http.Request) {
 }
 
 var accountUpdate = common.AuthHandlerFunc(func(id string, w http.ResponseWriter, r *http.Request) {
-	msg, err := common.RequestMessage(r)
+	user, err := common.RequestUserMessage(r)
 	if err != nil {
 		metrictAccountUpdateFailure.Inc()
-		common.RespondClientError(w, &models.Errors{Meta: err})
+		common.RespondClientError(w, err)
 		return
 	}
 
-	log.Debugf("Attempting to update password for %#v.", msg.User.DisplayName)
+	log.Debugf("Attempting to update password for %#v.", user.DisplayName)
 
 	// Override any ID given in the JSON request body with the actual
 	// authenticated user ID.
-	msg.User.ID = id
-	user, userErr := models.UserSetPassword(*msg.User)
+	user.ID = id
+	user, userErr := models.UserSetPassword(*user)
 	if userErr != nil {
 		metrictAccountUpdateFailure.Inc()
 		log.Debugf("Failed to update password, %v.", userErr.Error())
