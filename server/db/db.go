@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/GreatestGuys/pifuxelck-server-go/server/log"
+	"github.com/prometheus/client_golang/prometheus"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -23,6 +24,23 @@ type Config struct {
 
 var config = (*Config)(nil)
 var configOnce sync.Once
+
+var (
+	metricTxCommit = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "db_tx_commits",
+		Help: "The number committed transactions.",
+	})
+
+	metricTxRollback = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "db_tx_rollbacks",
+		Help: "The number rolled back transactions.",
+	})
+)
+
+func init() {
+	prometheus.MustRegister(metricTxCommit)
+	prometheus.MustRegister(metricTxRollback)
+}
 
 // Initialize the database with a configuration. This method must be called
 // prior to calling WithDB.
@@ -97,9 +115,11 @@ func WithTx(f func(*sql.Tx) error) error {
 				}
 			}
 			if err != nil {
+				metricTxRollback.Inc()
 				tx.Rollback()
 				return
 			}
+			metricTxCommit.Inc()
 			err = tx.Commit()
 		}()
 

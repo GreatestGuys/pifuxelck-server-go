@@ -8,6 +8,10 @@ import (
 	"github.com/GreatestGuys/pifuxelck-server-go/server/models"
 )
 
+func setContentTypeToJson(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+}
+
 // RespondServerError signals to the client that the server encountered an
 // unexpected error and was unable to respond. This method should only be used
 // when the server encounters an unrecoverable error. To signal that error lies
@@ -26,6 +30,7 @@ func RespondClientError(w http.ResponseWriter, r *models.Errors) {
 		return
 	}
 
+	setContentTypeToJson(w)
 	w.WriteHeader(422)
 	w.Write(b)
 }
@@ -40,6 +45,7 @@ func RespondSuccess(w http.ResponseWriter, r *models.Message) {
 		return
 	}
 
+	setContentTypeToJson(w)
 	w.WriteHeader(http.StatusOK)
 	w.Write(b)
 }
@@ -49,6 +55,7 @@ func RespondSuccess(w http.ResponseWriter, r *models.Message) {
 // over RespondSuccess since it saves bandwidth and is marginally faster in
 // building the actual response.
 func RespondSuccessNoContent(w http.ResponseWriter) {
+	setContentTypeToJson(w)
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("{}"))
 }

@@ -5,7 +5,25 @@ import (
 
 	"github.com/GreatestGuys/pifuxelck-server-go/server/log"
 	"github.com/GreatestGuys/pifuxelck-server-go/server/models"
+	"github.com/prometheus/client_golang/prometheus"
 )
+
+var (
+	metricAuthSuccess = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "auth_success",
+		Help: "The number of valid authenticated requests.",
+	})
+
+	metricAuthFailure = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "auth_failure",
+		Help: "The number of invalid authenticated requests.",
+	})
+)
+
+func init() {
+	prometheus.MustRegister(metricAuthFailure)
+	prometheus.MustRegister(metricAuthSuccess)
+}
 
 // AuthHandlerFunc takes an function that takes a user ID, an
 // http.ResponseWriter, and an http.Request and returns an http.Handler that
@@ -16,11 +34,13 @@ func AuthHandlerFunc(h func(string, http.ResponseWriter, *http.Request)) func(ht
 		auth := r.Header.Get("x-pifuxelck-auth")
 		userID, err := models.AuthTokenLookup(auth)
 		if err != nil {
+			metricAuthFailure.Inc()
 			log.Debugf("Invalid authentication token %#v.", auth)
 			w.WriteHeader(http.StatusForbidden)
 			return
 		}
 
+		metricAuthSuccess.Inc()
 		log.Debugf("Successfully authenticated as user %v.", userID)
 		h(userID, w, r)
 	}
