@@ -29,25 +29,34 @@ func (e UserError) Error() string {
 	return common.ModelErrorHelper(e)
 }
 
-// CreateUser takes a User object and attempts to create a new user with the
-// given credentials. This call can fail if the display name is already
-// registered, or if the password is not sufficiently complex.
-func CreateUser(user User) (_ *User, userErr *UserError) {
-	if len(user.Password) < 8 {
+func hashPassword(password string) ([]byte, *UserError) {
+	if len(password) < 8 {
 		return nil, &UserError{
 			Password: []string{"Password must be at least 8 characters."},
 		}
 	}
 
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		log.Errorf("Unable to hash password, %v.", err)
+		return nil, &UserError{Password: []string{"Invalid password."}}
+	}
+
+	return hash, nil
+}
+
+// CreateUser takes a User object and attempts to create a new user with the
+// given credentials. This call can fail if the display name is already
+// registered, or if the password is not sufficiently complex.
+func CreateUser(user User) (_ *User, userErr *UserError) {
 	if user.DisplayName == "" {
 		return nil, &UserError{DisplayName: []string{"Username must be non-empty."}}
 	}
 
-	hash, err := bcrypt.GenerateFromPassword(
-		[]byte(user.Password), bcrypt.DefaultCost)
-	if err != nil {
-		log.Errorf("Unable to hash password, %v.", err)
-		return nil, &UserError{Password: []string{"Invalid password."}}
+	var hash []byte
+	hash, userErr = hashPassword(user.Password)
+	if userErr != nil {
+		return nil, userErr
 	}
 
 	db.WithTx(func(tx *sql.Tx) error {
@@ -104,4 +113,30 @@ func UserLookupByPassword(user User) (id string, userErr *UserError) {
 		return nil
 	})
 	return id, userErr
+}
+
+// UserSetPassword takes a User object and updates their password.
+func UserSetPassword(user User) (*User, *UserError) {
+	hash, userErr := hashPassword(user.Password)
+	if userErr != nil {
+		return nil, userErr
+	}
+
+	db.WithTx(func(tx *sql.Tx) error {
+		log.Debugf("Updating password in db of user %#v.", user.DisplayName)
+		_, err := tx.Exec(
+			"UPDATE Accounts SET password_hash = ? WHERE id = ?",
+			hash, user.ID)
+
+		if err != nil {
+			log.Debugf("Update failed, %v.", err.Error())
+			userErr = &UserError{Password: []string{"Unable to set password."}}
+			return err
+		}
+
+		return nil
+	})
+
+	user.Password = ""
+	return &user, userErr
 }
