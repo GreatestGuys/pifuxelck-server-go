@@ -20,9 +20,9 @@
 //            per request.
 //
 //     DEBUG - The debug level should be used for messages that provide insight
-//            in to the line by line path through the code. There can be many
-//            debug statements per request. The debug log level should not be
-//            used to log large go data structures.
+//             in to the line by line path through the code. There can be many
+//             debug statements per request. The debug log level should not be
+//             used to log large go data structures.
 //
 //     VERBOSE - The verbose level can be used to log complete or partial go
 //               data structures, or any other information that would otherwise
