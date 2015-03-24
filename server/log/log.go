@@ -16,8 +16,8 @@
 //               encoded request bodies.
 //
 //     INFO - The info level should be used to provide insight in the typical
-//		        activity of the app. There should be approximately one info log
-//		        per request.
+//            activity of the app. There should be approximately one info log
+//            per request.
 //
 //     DEBUG - The debug level should be used for messages that provide insight
 //            in to the line by line path through the code. There can be many
@@ -25,8 +25,8 @@
 //            used to log large go data structures.
 //
 //     VERBOSE - The verbose level can be used to log complete or partial go
-//		           data structures, or any other information that would otherwise
-//		           clutter the log output.
+//               data structures, or any other information that would otherwise
+//               clutter the log output.
 package log
 
 import (
