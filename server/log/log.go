@@ -1,3 +1,32 @@
+// The log package provides a light weight wrapper around go's standard log
+// package that provides logging at different verbosity levels.
+//
+// Rules of thumb for log levels are as follows:
+//
+//     FATAL - Should only be used in a totally unrecoverable scenario. Logging
+//             at the fatal level will cause the app to panic.
+//
+//     ERROR - The error level should only be used to log errors where the
+//             request cannot be completed, typically because of some erroneous
+//             server side state.
+//
+//     WARNING - The warning level should be used to log messages that should
+//               not happen often, but are not fatal to the request. Typically
+//               these will be client side errors, for example improperly
+//               encoded request bodies.
+//
+//     INFO - The info level should be used to provide insight in the typical
+//		        activity of the app. There should be approximately one info log
+//		        per request.
+//
+//     DEBUG - The debug level should be used for messages that provide insight
+//            in to the line by line path through the code. There can be many
+//            debug statements per request. The debug log level should not be
+//            used to log large go data structures.
+//
+//     VERBOSE - The verbose level can be used to log complete or partial go
+//		           data structures, or any other information that would otherwise
+//		           clutter the log output.
 package log
 
 import (

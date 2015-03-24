@@ -30,7 +30,7 @@ func (e NewGameError) Error() string {
 // CreateGame creates a new game where the first turn is a label submitted by
 // the given user ID, and the remaining turns are alternating drawing and labels
 // with the players corresponding to the entries in the NewGame struct.
-func CreateGame(userId string, newGame NewGame) *Errors {
+func CreateGame(userID string, newGame NewGame) *Errors {
 	if newGame.Label == "" {
 		log.Debugf("Failed to create game due to lack of label.")
 		return &Errors{NewGame: &NewGameError{
@@ -52,7 +52,7 @@ func CreateGame(userId string, newGame NewGame) *Errors {
 			`INSERT INTO Games (completed_at_id , next_expiration)
 			 VALUES (NULL, NOW() + INTERVAL 2 DAY)`)
 
-		gameId, err := res.LastInsertId()
+		gameID, err := res.LastInsertId()
 		if err != nil {
 			errors = &Errors{App: genericError}
 			return err
@@ -65,7 +65,7 @@ func CreateGame(userId string, newGame NewGame) *Errors {
 			`INSERT INTO Turns
 				 (account_id, game_id, is_complete, is_drawing, label, drawing)
 				 VALUES (?, ?, 1, 0, ?, '')`,
-			userId, gameId, newGame.Label)
+			userID, gameID, newGame.Label)
 		if err != nil {
 			errors = &Errors{App: genericError}
 			return err
@@ -75,7 +75,7 @@ func CreateGame(userId string, newGame NewGame) *Errors {
 		// list of newGame, alternating drawing and label turns.
 		order := rand.Perm(len(newGame.Players))
 		for i, v := range order {
-			playerId := newGame.Players[v]
+			playerID := newGame.Players[v]
 			isDrawing := i%2 == 0
 			_, err := tx.Exec(
 				`INSERT INTO Turns
@@ -86,10 +86,10 @@ func CreateGame(userId string, newGame NewGame) *Errors {
 				 , label
 				 , drawing
 				 ) VALUES (?, ?, 0, ?, '', '')`,
-				playerId, gameId, isDrawing)
+				playerID, gameID, isDrawing)
 			if err != nil {
 				errors = &Errors{NewGame: &NewGameError{
-					Players: []string{"No such player id " + playerId + "."},
+					Players: []string{"No such player id " + playerID + "."},
 				}}
 				return err
 			}

@@ -29,6 +29,8 @@ func RequestMessage(r *http.Request) (*models.Message, *models.Errors) {
 	return msg, nil
 }
 
+// RequestUserMessage extracts and returns a User model from the request body
+// and returns an error if unable to do so.
 func RequestUserMessage(r *http.Request) (*models.User, *models.Errors) {
 	msg, err := RequestMessage(r)
 	if err != nil {
@@ -36,14 +38,14 @@ func RequestUserMessage(r *http.Request) (*models.User, *models.Errors) {
 	}
 
 	if msg.User == nil {
-		return nil, &models.Errors{User: &models.UserError{
-			DisplayName: []string{"No user given."},
-		}}
+		return nil, &models.Errors{App: []string{"No user object in request body."}}
 	}
 
 	return msg.User, nil
 }
 
+// RequestNewGameMessage extracts and returns a NewGame model from the request
+// body and returns an error if unable to do so.
 func RequestNewGameMessage(r *http.Request) (*models.NewGame, *models.Errors) {
 	msg, err := RequestMessage(r)
 	if err != nil {
@@ -51,10 +53,24 @@ func RequestNewGameMessage(r *http.Request) (*models.NewGame, *models.Errors) {
 	}
 
 	if msg.NewGame == nil {
-		return nil, &models.Errors{NewGame: &models.NewGameError{
-			Label: []string{"No new game given."},
-		}}
+		return nil, &models.Errors{
+			App: []string{"No new_game object in request body."}}
 	}
 
 	return msg.NewGame, nil
+}
+
+// RequestTurnMessage extracts and returns a Turn model from the request body
+// and returns an error if unable to do so.
+func RequestTurnMessage(r *http.Request) (*models.Turn, *models.Errors) {
+	msg, err := RequestMessage(r)
+	if err != nil {
+		return nil, err
+	}
+
+	if msg.Turn == nil {
+		return nil, &models.Errors{App: []string{"No turn object in request body."}}
+	}
+
+	return msg.Turn, nil
 }
