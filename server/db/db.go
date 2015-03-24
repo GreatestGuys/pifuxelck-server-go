@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"strconv"
 	"sync"
 
@@ -42,6 +43,10 @@ func Init(c Config) {
 // WithDB takes a function that is immediately invoked with a reference to the
 // pifuxelck database. The function should not close the database connection,
 // all resource freeing is handled automatically.
+//
+// If you are performing multiple SQL operations, you likely want to use WithTx
+// which will wrap the operations in a transaction and automatically handle
+// commits, rollbacks and retries.
 func WithDB(f func(*sql.DB)) {
 	if config == nil {
 		log.Fatalf("WithDB called prior to initialization of the database.")
@@ -63,4 +68,42 @@ func WithDB(f func(*sql.DB)) {
 	defer con.Close()
 
 	f(con)
+}
+
+// WithTX takes a function that is immediately invoked with a reference to a
+// transaction on the pifuxelck database. The function should not commit or roll
+// back the transaction. If the passed in function returns an error then the
+// transaction will be rolled back other wiser it will be committed.
+func WithTx(f func(*sql.Tx) error) error {
+	if config == nil {
+		log.Fatalf("WithTx called prior to initialization of the database.")
+	}
+
+	var err error
+	WithDB(func(db *sql.DB) {
+		var tx *sql.Tx
+		tx, err = db.Begin()
+		if err != nil {
+			return
+		}
+
+		defer func() {
+			if p := recover(); p != nil {
+				switch p := p.(type) {
+				case error:
+					err = p
+				default:
+					err = fmt.Errorf("%s", p)
+				}
+			}
+			if err != nil {
+				tx.Rollback()
+				return
+			}
+			err = tx.Commit()
+		}()
+
+		err = f(tx)
+	})
+	return err
 }

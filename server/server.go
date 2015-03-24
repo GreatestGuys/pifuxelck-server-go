@@ -34,8 +34,7 @@ func newRouter() *mux.Router {
 	r := mux.NewRouter()
 
 	s := r.PathPrefix("/api/2/").Subrouter()
-	s.HandleFunc("/secret", handlers.Secret)
-	s.HandleFunc("/", handlers.Home)
+	handlers.InstallAccountHandlers(s)
 
 	return r
 }
