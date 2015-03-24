@@ -40,6 +40,11 @@ var (
 		Name: "game_play_failure",
 		Help: "The number of failed attempts to take a turn.",
 	})
+
+	metricGameCompletedAtFailure = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "game_completed_at_update_failed",
+		Help: "The number of times the query to update a game's finish time fails.",
+	})
 )
 
 func init() {
@@ -118,6 +123,16 @@ var gamePlay = common.AuthHandlerFunc(func(userID string, w http.ResponseWriter,
 		log.Debugf("User %v failed to take turn in game %v.", userID, gameID)
 		common.RespondClientError(w, errors)
 		return
+	}
+
+	// Check if the game needs to have it's completed at time updated.
+	errors = models.UpdateGameCompletedAtTime(gameID)
+	if errors != nil {
+		// This should not be returned to the user, as their turn has already been
+		// successfully added, instead just log this as an error, update the
+		// corresponding metric and hope that someone checks the logs.
+		log.Errorf("Unable to update game completed at time!")
+		metricGameCompletedAtFailure.Inc()
 	}
 
 	metricGamePlaySuccess.Inc()

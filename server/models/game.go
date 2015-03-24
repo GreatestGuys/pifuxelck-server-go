@@ -100,3 +100,54 @@ func CreateGame(userID string, newGame NewGame) *Errors {
 
 	return errors
 }
+
+// UpdateGameCompletedAtTime takes a game ID and updates the completion time if
+// the game is over, and does nothing otherwise.
+func UpdateGameCompletedAtTime(gameID string) *Errors {
+	log.Debugf("Checking if game %v needs a completed at id.", gameID)
+
+	var errors *Errors
+	errMsg := []string{"Unable to update the game's completion time."}
+	db.WithTx(func(tx *sql.Tx) error {
+		// This query is a conditional insert that will create an entry in the
+		// GamesCompletedAt table if and only if the game with id gameID is
+		// complete AND there is not already an entry in GamesCompletedAt for this
+		// game.
+		res, err := tx.Exec(
+			`INSERT INTO GamesCompletedAt (completed_at)
+			 (
+			    SELECT NOW()
+			    FROM Games
+			    WHERE (
+			        SELECT completed_at_id
+			        FROM Games
+			        WHERE id = ?) IS NULL
+			      AND 1 = (
+			           SELECT SUM(is_complete) = COUNT(*)
+			           FROM Turns
+			           WHERE game_id = ?)
+			    LIMIT 1
+			 )`,
+			gameID, gameID)
+		if err != nil {
+			log.Warnf("Query to insert completed at id failed, %v.", err)
+			errors = &Errors{App: errMsg}
+			return err
+		}
+
+		// If there is not last inserted ID, then the game was not over. This is
+		// fine, just return nil as a success.
+		completedAtID, err := res.LastInsertId()
+		if err != nil {
+			return nil
+		}
+
+		// If there IS a completed at id, then update the game to point to this new
+		// entry.
+		_, err = tx.Exec(
+			"UPDATE Games SET completed_at_id = ? WHERE id = ?",
+			completedAtID, gameID)
+		return err
+	})
+	return errors
+}
