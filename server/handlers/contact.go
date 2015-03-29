@@ -7,25 +7,7 @@ import (
 	"github.com/GreatestGuys/pifuxelck-server-go/server/log"
 	"github.com/GreatestGuys/pifuxelck-server-go/server/models"
 	"github.com/gorilla/mux"
-	"github.com/prometheus/client_golang/prometheus"
 )
-
-var (
-	metricContactLookupSuccess = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "contact_lookup_success",
-		Help: "The number of successful contact lookups.",
-	})
-
-	metricContactLookupFailure = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "contact_lookup_failure",
-		Help: "The number of unsuccessful contact lookups.",
-	})
-)
-
-func init() {
-	prometheus.MustRegister(metricContactLookupFailure)
-	prometheus.MustRegister(metricContactLookupSuccess)
-}
 
 // InstallContactHandlers takes a gorilla router and installs /contact/*
 // endpoints on it.
@@ -39,13 +21,11 @@ var contactLookup = common.AuthHandlerFunc(func(_ string, w http.ResponseWriter,
 	user, userErr := models.ContactLookup(displayName)
 
 	if userErr != nil {
-		metricContactLookupFailure.Inc()
 		log.Debugf("Lookup for contact %#v failed.", displayName)
 		common.RespondClientError(w, &models.Errors{User: userErr})
 		return
 	}
 
-	metricContactLookupSuccess.Inc()
 	log.Infof("Successful lookup of contact %#v.", displayName)
 	common.RespondSuccess(w, &models.Message{User: user})
 })
