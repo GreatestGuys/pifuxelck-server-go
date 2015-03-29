@@ -6,19 +6,19 @@ type Drawing struct {
 }
 
 type Color struct {
-	Alpha string `json:"alpha"`
-	Red   string `json:"red"`
-	Green string `json:"green"`
-	Blue  string `json:"blue"`
+	Alpha float64 `json:"alpha"`
+	Red   float64 `json:"red"`
+	Green float64 `json:"green"`
+	Blue  float64 `json:"blue"`
 }
 
 type Line struct {
 	Color  *Color  `json:"color"`
-	Size   string  `json:"size"`
+	Size   float64 `json:"size"`
 	Points []Point `json:"points"`
 }
 
 type Point struct {
-	X string `json:"x"`
-	Y string `json:"y"`
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
 }

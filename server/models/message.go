@@ -9,6 +9,7 @@ type Message struct {
 	NewGame      *NewGame     `json:"new_game,omitempty"`
 	InboxEntries []InboxEntry `json:"inbox_entries,omitempty"`
 	Turn         *Turn        `json:"turn,omitempty"`
+	Games        []Game       `json:"games,omitempty"`
 }
 
 // Errors is a union of all possible error types. It is a sub-field of the

@@ -77,7 +77,7 @@ func GetInboxEntriesForUser(userID string) ([]InboxEntry, *Errors) {
 			if turn.IsDrawing {
 				err := json.Unmarshal([]byte(drawingJson), &turn.Drawing)
 				if err != nil {
-					log.Debugf("Unable to scan row, %v.", err.Error())
+					log.Debugf("Unable to unmarshal drawing, %v.", err.Error())
 					continue
 				}
 			}

@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"encoding/json"
 	"math/rand"
 
 	"github.com/GreatestGuys/pifuxelck-server-go/server/db"
@@ -10,7 +11,10 @@ import (
 )
 
 type Game struct {
-	ID string `json:"game_id,omitempty"`
+	ID            string  `json:"id,omitempty"`
+	Turns         []*Turn `json:"turns,omitempty"`
+	CompletedAt   int64   `json:"completed_at,omitempty"`
+	CompletedAtID string  `json:"completed_at_id,omitempty"`
 }
 
 type NewGame struct {
@@ -282,4 +286,98 @@ func ReapExpiredTurns() *Errors {
 		return &Errors{App: []string{"Unable to skip expired turns."}}
 	}
 	return nil
+}
+
+// CompletedGames returns a list of games that a given user has participated in
+// and that have been completed since the given completed at ID.
+func CompletedGames(userID, sinceID string) ([]Game, *Errors) {
+	var games []Game
+	var errors *Errors
+	errMsg := []string{"Unable to query history at this time."}
+	db.WithDB(func(db *sql.DB) {
+		rows, err := db.Query(
+			`SELECT
+			    Games.id,
+			    Games.completed_at_id,
+			    UNIX_TIMESTAMP(GamesCompletedAt.completed_at),
+			    Accounts.display_name,
+			    Turns.is_drawing,
+			    Turns.drawing,
+			    Turns.label
+			 From Turns as Turns
+			 INNER JOIN (
+			    SELECT id, completed_at_id
+			    FROM Games as Games
+			    INNER JOIN (
+			        SELECT game_id FROM Turns AS T WHERE T.account_id = ?
+			    ) AS T ON T.game_id = Games.id
+			    WHERE Games.completed_at_id > ?
+			    ORDER BY completed_at_id ASC
+			    LIMIT 10
+			 ) AS Games ON Turns.game_id = Games.id
+			 INNER JOIN (
+			    SELECT id, display_name
+			    FROM Accounts as Accounts
+			 ) AS Accounts ON Turns.account_id = Accounts.id
+			 INNER JOIN (
+			    SELECT id, completed_at FROM GamesCompletedAt as GamesCompletedAt
+			 ) AS GamesCompletedAt ON GamesCompletedAt.id = Games.completed_at_id
+			 GROUP BY Turns.id
+			 ORDER BY Games.id ASC, Turns.id ASC`,
+			userID, sinceID)
+		if err != nil {
+			log.Warnf("Unable to look up completed games, %v", err)
+			errors = &Errors{App: errMsg}
+			return
+		}
+
+		gameIDToGame := make(map[string]*Game)
+
+		defer rows.Close()
+		for rows.Next() {
+			var gameID, completedAtID string
+			var completedAt int64
+			var drawingJson string
+			turn := &Turn{}
+			err = rows.Scan(
+				&gameID, &completedAtID, &completedAt,
+				&turn.Player, &turn.IsDrawing, &drawingJson, &turn.Label)
+			if err != nil {
+				log.Warnf("Unable to scan row, %v.", err.Error())
+				continue
+			}
+
+			// Only attempt to unmarshal the drawing if it is a drawing turn.
+			// Otherwise the drawing will be an empty string which is not valid JSON.
+			if turn.IsDrawing {
+				err := json.Unmarshal([]byte(drawingJson), &turn.Drawing)
+				if err != nil {
+					log.Warnf("Unable to unmarshal drawing, %v.", err.Error())
+					log.Verbosef("Offending drawing JSON: %#v.", drawingJson)
+					continue
+				}
+			}
+
+			game := gameIDToGame[gameID]
+			if game == nil {
+				game = &Game{}
+				game.ID = gameID
+				game.CompletedAtID = completedAtID
+				game.CompletedAt = completedAt
+				gameIDToGame[gameID] = game
+			}
+
+			game.Turns = append(game.Turns, turn)
+		}
+
+		games = make([]Game, 0, len(gameIDToGame))
+		for _, game := range gameIDToGame {
+			games = append(games, *game)
+		}
+	})
+
+	if errors != nil {
+		return nil, errors
+	}
+	return games, nil
 }
