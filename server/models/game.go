@@ -106,9 +106,18 @@ func CreateGame(userID string, newGame NewGame) *Errors {
 func UpdateGameCompletedAtTime(gameID string) *Errors {
 	log.Debugf("Checking if game %v needs a completed at id.", gameID)
 
-	var errors *Errors
-	errMsg := []string{"Unable to update the game's completion time."}
-	db.WithTx(func(tx *sql.Tx) error {
+	err := db.WithTx(updateGameCompletedAtTimeInTx(gameID))
+	if err != nil {
+		return &Errors{
+			App: []string{"Unable to update the game's completion time."},
+		}
+	}
+
+	return nil
+}
+
+func updateGameCompletedAtTimeInTx(gameID string) func(*sql.Tx) error {
+	return func(tx *sql.Tx) error {
 		// This query is a conditional insert that will create an entry in the
 		// GamesCompletedAt table if and only if the game with id gameID is
 		// complete AND there is not already an entry in GamesCompletedAt for this
@@ -116,22 +125,21 @@ func UpdateGameCompletedAtTime(gameID string) *Errors {
 		res, err := tx.Exec(
 			`INSERT INTO GamesCompletedAt (completed_at)
 			 (
-			    SELECT NOW()
-			    FROM Games
-			    WHERE (
-			        SELECT completed_at_id
-			        FROM Games
-			        WHERE id = ?) IS NULL
-			      AND 1 = (
-			           SELECT SUM(is_complete) = COUNT(*)
-			           FROM Turns
-			           WHERE game_id = ?)
-			    LIMIT 1
+					SELECT NOW()
+					FROM Games
+					WHERE (
+							SELECT completed_at_id
+							FROM Games
+							WHERE id = ?) IS NULL
+						AND 1 = (
+								 SELECT SUM(is_complete) = COUNT(*)
+								 FROM Turns
+								 WHERE game_id = ?)
+					LIMIT 1
 			 )`,
 			gameID, gameID)
 		if err != nil {
 			log.Warnf("Query to insert completed at id failed, %v.", err)
-			errors = &Errors{App: errMsg}
 			return err
 		}
 
@@ -148,6 +156,130 @@ func UpdateGameCompletedAtTime(gameID string) *Errors {
 			"UPDATE Games SET completed_at_id = ? WHERE id = ?",
 			completedAtID, gameID)
 		return err
+	}
+}
+
+// ReapExpiredTurns removes turns from games where the expiration time has
+// passed. This method should be called periodically to ensure that games to not
+// hang on players who have uninstalled the app or otherwise stopped playing.
+func ReapExpiredTurns() *Errors {
+	log.Debugf("Reaping expired turns.")
+
+	err := db.WithTx(func(tx *sql.Tx) error {
+		// First delete turns from games where the expiration time is in the past.
+		res, err := tx.Exec(
+			`DELETE Turns FROM Turns
+			 INNER JOIN (
+			    SELECT
+			        game_id,
+			        MIN(id) as next_id
+			    FROM Turns
+			    WHERE is_complete = 0
+			    GROUP BY game_id
+			 ) AS NextTurn ON NextTurn.next_id = Turns.id
+			 INNER JOIN (
+			    SELECT id FROM Games
+			    WHERE next_expiration < NOW()
+			 ) AS Games ON Games.id = Turns.game_id
+			 WHERE Turns.id = NextTurn.next_id`)
+		if err != nil {
+			log.Warnf("Unable to delete expired turns, %v.", err)
+			return err
+		}
+
+		expiredTurns, _ := res.RowsAffected()
+		log.Debugf("Expired %v turns.", expiredTurns)
+
+		// Next, update the remaining turns
+		res, err = tx.Exec(
+			`UPDATE Turns
+			 INNER JOIN (
+					SELECT id FROM Games
+					WHERE next_expiration < NOW() AND completed_at_id IS NULL
+			 ) AS Games ON Games.id = Turns.game_id
+			 SET is_drawing = NOT is_drawing
+			 WHERE is_complete = 0`)
+		if err != nil {
+			log.Warnf("Unable to update remaining turns, %v.", err)
+			return err
+		}
+
+		updatedTurns, _ := res.RowsAffected()
+		log.Debugf("%v turns updated to reflect new turn order.", updatedTurns)
+
+		// Next, update the remaining turns
+		res, err = tx.Exec(
+			`UPDATE Games
+			 SET next_expiration = NOW() + INTERVAL 2 DAY
+			 WHERE next_expiration < NOW() AND completed_at_id IS NULL`)
+		if err != nil {
+			log.Warnf("Unable to update expiration time for affected games, %v.", err)
+			return err
+		}
+
+		updatedGames, _ := res.RowsAffected()
+		log.Debugf("%v games updated to reflect new expiration time.", updatedGames)
+
+		// Obtain a list of all games where all of the turns are marked as complete,
+		// but where the game does not have a completed at ID.
+		rows, err := tx.Query(
+			`SELECT Games.id
+			 FROM Games AS Games
+			 INNER JOIN (
+			    SELECT game_id, COUNT(*) as total
+			    FROM Turns
+			    GROUP BY game_id
+			 ) AS AllTurns ON AllTurns.game_id = Games.id
+			 INNER JOIN (
+			    SELECT game_id, COUNT(*) as total
+			    FROM Turns
+			    WHERE is_complete = 1
+			    GROUP BY game_id
+			 ) AS CompleteTurns ON CompleteTurns.game_id = Games.id
+			 WHERE Games.completed_at_id IS NULL
+			   AND CompleteTurns.total = AllTurns.total`)
+		if err != nil {
+			log.Warnf("Unable to find finshed games without a completed ID, %v", err)
+			return err
+		}
+
+		gameIDs := make([]string, 0)
+		for rows.Next() {
+			var id string
+			err = rows.Scan(&id)
+			if err != nil {
+				rows.Close()
+				return err
+			}
+			gameIDs = append(gameIDs, id)
+		}
+		rows.Close()
+
+		for _, id := range gameIDs {
+			log.Verbosef("Assigning a completed at ID to game %v.", id)
+			err = updateGameCompletedAtTimeInTx(id)(tx)
+			if err != nil {
+				return err
+			}
+		}
+
+		// TODO(will): Uncomment this once the database is free of all orphaned
+		// games.
+		//
+		// If the number of updated games does not equal the number of expired
+		// turns, then fail the transaction.
+		//		if updatedGames != expiredTurns {
+		//			log.Warnf(
+		//				"Reaping failed, number of games (%v) and turns (%v) affected differs.",
+		//				updatedGames, expiredTurns)
+		//			return errors.New("Inconsistent number of turns and games affected.")
+		//		}
+
+		return nil
 	})
-	return errors
+
+	if err != nil {
+		return &Errors{App: []string{"Unable to skip expired turns."}}
+	}
+	return nil
 }

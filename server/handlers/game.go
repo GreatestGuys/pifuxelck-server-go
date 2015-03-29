@@ -83,6 +83,8 @@ var gameCreate = common.AuthHandlerFunc(func(id string, w http.ResponseWriter, r
 })
 
 var gameInbox = common.AuthHandlerFunc(func(id string, w http.ResponseWriter, r *http.Request) {
+	models.ReapExpiredTurns()
+
 	log.Debugf("Attempting to query users inbox.")
 	entries, errors := models.GetInboxEntriesForUser(id)
 	if errors != nil {
