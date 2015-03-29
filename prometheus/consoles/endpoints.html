@@ -1,0 +1,71 @@
+{{ template "head" . }}
+{{ template "prom_content_head" . }}
+
+<h1>Endpoint Details</h1>
+
+<h2>Queries Per Second</h2>
+
+<div id="qpsGraph" class="dash-graph">
+  <script>
+  new PromConsole.Graph({
+    node: document.querySelector('#qpsGraph'),
+    expr: 'rate(http_request_size_bytes_count{job="pifuxelck-server-go",handler!="prometheus"}[5m])',
+    renderer: 'area',
+    min: 'auto',
+    yAxisFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+    yHoverFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+    yTitle: 'QPS'
+  })
+  </script>
+</div>
+
+<h2>Latency</h2>
+
+<div id="latencyGraph" class="dash-graph">
+  <script>
+  new PromConsole.Graph({
+    node: document.querySelector('#latencyGraph'),
+    expr: 'rate(http_request_duration_microseconds_sum{job="pifuxelck-server-go",handler!="prometheus"}[5m]) /rate(http_request_duration_microseconds_count{job="pifuxelck-server-go",handler!="prometheus"}[5m])',
+    renderer: 'line',
+    min: 'auto',
+    yAxisFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+    yHoverFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+    yTitle: 'Microseconds'
+  })
+  </script>
+</div>
+
+<h2>Response Size</h2>
+
+<div id="txGraph" class="dash-graph">
+  <script>
+  new PromConsole.Graph({
+    node: document.querySelector('#txGraph'),
+    expr: 'rate(http_response_size_bytes_sum{job="pifuxelck-server-go",handler!="prometheus"}[5m]) /rate(http_response_size_bytes_count{job="pifuxelck-server-go",handler!="prometheus"}[5m])',
+    renderer: 'area',
+    min: 'auto',
+    yAxisFormatter: PromConsole.NumberFormatter.humanize1024,
+    yHoverFormatter: PromConsole.NumberFormatter.humanize1024,
+    yTitle: 'Bytes'
+  })
+  </script>
+</div>
+
+<h2>Request Size</h2>
+
+<div id="rxGraph" class="dash-graph">
+  <script>
+  new PromConsole.Graph({
+    node: document.querySelector('#rxGraph'),
+    expr: 'rate(http_request_size_bytes_sum{job="pifuxelck-server-go",handler!="prometheus"}[5m]) /rate(http_response_size_bytes_count{job="pifuxelck-server-go",handler!="prometheus"}[5m])',
+    renderer: 'area',
+    min: 'auto',
+    yAxisFormatter: PromConsole.NumberFormatter.humanize1024,
+    yHoverFormatter: PromConsole.NumberFormatter.humanize1024,
+    yTitle: 'Bytes'
+  })
+  </script>
+</div>
+
+{{ template "prom_content_tail" . }}
+{{ template "tail" }}

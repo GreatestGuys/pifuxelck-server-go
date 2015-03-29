@@ -1,0 +1,61 @@
+{{ template "head" . }}
+{{ template "prom_content_head" . }}
+
+<h1>Overview</h1>
+
+<h2>Queries Per Second</h2>
+
+<div id="qpsGraph" class="dash-graph">
+  <script>
+  new PromConsole.Graph({
+    node: document.querySelector('#qpsGraph'),
+    expr: '(sum(http_request_size_bytes_count{job="pifuxelck-server-go",handler!="prometheus"}) by (job) - sum(http_request_size_bytes_count{job="pifuxelck-server-go",handler!="prometheus"} offset 5m) by (job)) / 300',
+    renderer: 'area',
+    min: 'auto',
+    yAxisFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+    yHoverFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+    yTitle: 'QPS'
+  })
+  </script>
+</div>
+
+<h2>Memory Usage</h2>
+
+<div id="memGraph" class="dash-graph">
+  <script>
+  new PromConsole.Graph({
+    node: document.querySelector('#memGraph'),
+    expr: 'process_resident_memory_bytes{job="pifuxelck-server-go"}',
+    renderer: 'area',
+    min: '0',
+    max:
+      {{ with query "1.5 * max(process_resident_memory_bytes{job='pifuxelck-server-go'})"}}
+        {{ . | first | value }}
+      {{ else}}
+        undefined
+      {{end}},
+    yAxisFormatter: PromConsole.NumberFormatter.humanize1024,
+    yHoverFormatter: PromConsole.NumberFormatter.humanize1024,
+    yTitle: 'Bytes'
+  })
+  </script>
+</div>
+
+<h2>CPU Load</h2>
+
+<div id="cpuGraph" class="dash-graph">
+  <script>
+  new PromConsole.Graph({
+    node: document.querySelector('#cpuGraph'),
+    expr: 'rate(process_cpu_seconds_total{job="pifuxelck-server-go"}[5m])',
+    renderer: 'area',
+    min: '0',
+    yAxisFormatter: PromConsole.NumberFormatter.humanize1024,
+    yHoverFormatter: PromConsole.NumberFormatter.humanize1024,
+    yTitle: 'Load'
+  })
+  </script>
+</div>
+
+{{ template "prom_content_tail" . }}
+{{ template "tail" }}

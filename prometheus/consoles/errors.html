@@ -1,0 +1,73 @@
+{{ template "head" . }}
+{{ template "prom_content_head" . }}
+<h1>Errors</h1>
+
+<h2>Endpoint Error Rate</h2>
+
+<div id="errorRateGraph" class="dash-graph">
+  <script>
+  new PromConsole.Graph({
+    node: document.querySelector('#errorRateGraph'),
+    expr: '(sum(endpoint_queries{status!="200"}) by (handler)) / (sum(endpoint_queries) by (handler))',
+    renderer: 'line',
+    min: '0',
+    max: '1',
+    yAxisFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+    yHoverFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+    yTitle: 'Success Rate'
+  })
+  </script>
+</div>
+
+<h2>Uncaught Panics</h2>
+
+<div id="panicGraph" class="dash-graph">
+  <script>
+  new PromConsole.Graph({
+    node: document.querySelector('#panicGraph'),
+    expr: 'uncaught_panics',
+    renderer: 'area',
+    min: '0',
+    yAxisFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+    yHoverFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+    yTitle: 'Panics'
+  })
+  </script>
+</div>
+
+<h2>Database Rollback Rate</h2>
+
+<div id="dbGraph" class="dash-graph">
+  <script>
+  new PromConsole.Graph({
+    node: document.querySelector('#dbGraph'),
+    expr: 'db_tx_rollbacks / (db_tx_commits + db_tx_rollbacks)',
+    renderer: 'area',
+    min: '0',
+    max: '1',
+    yAxisFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+    yHoverFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+    yTitle: 'Rollback Rate'
+  })
+  </script>
+</div>
+
+<h2>Auth Failure Rate</h2>
+
+<div id="authGraph" class="dash-graph">
+  <script>
+  new PromConsole.Graph({
+    node: document.querySelector('#authGraph'),
+    expr: 'auth_failure / (auth_success + auth_failure)',
+    renderer: 'area',
+    min: '0',
+    max: '1',
+    yAxisFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+    yHoverFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+    yTitle: 'Rollback Rate'
+  })
+  </script>
+</div>
+
+{{ template "prom_content_tail" . }}
+{{ template "tail" }}
