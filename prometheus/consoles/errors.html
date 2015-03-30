@@ -26,7 +26,7 @@
   new PromConsole.Graph({
     node: document.querySelector('#panicGraph'),
     expr: 'uncaught_panics',
-    renderer: 'area',
+    renderer: 'line',
     min: '0',
     yAxisFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
     yHoverFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,

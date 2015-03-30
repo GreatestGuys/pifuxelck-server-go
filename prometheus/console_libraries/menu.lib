@@ -17,7 +17,7 @@
 
     <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
       <ul class="nav navbar-nav">
-        <li><a href="/consoles/index.html">Overview</a></li>
+        <li><a href="/consoles">Overview</a></li>
         <li><a href="/consoles/errors.html">Errors</a></li>
         <li><a href="/consoles/endpoints.html">Endpoints</a></li>
       </div>

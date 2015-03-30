@@ -42,7 +42,7 @@
   new PromConsole.Graph({
     node: document.querySelector('#txGraph'),
     expr: 'rate(http_response_size_bytes_sum{job="pifuxelck-server-go",handler!="prometheus"}[5m]) / (rate(http_response_size_bytes_count{job="pifuxelck-server-go",handler!="prometheus"}[5m]) + .0001)',
-    renderer: 'area',
+    renderer: 'line',
     min: 'auto',
     yAxisFormatter: PromConsole.NumberFormatter.humanize1024,
     yHoverFormatter: PromConsole.NumberFormatter.humanize1024,
@@ -58,7 +58,7 @@
   new PromConsole.Graph({
     node: document.querySelector('#rxGraph'),
     expr: 'rate(http_request_size_bytes_sum{job="pifuxelck-server-go",handler!="prometheus"}[5m]) / (rate(http_response_size_bytes_count{job="pifuxelck-server-go",handler!="prometheus"}[5m]) + .0001)',
-    renderer: 'area',
+    renderer: 'line',
     min: 'auto',
     yAxisFormatter: PromConsole.NumberFormatter.humanize1024,
     yHoverFormatter: PromConsole.NumberFormatter.humanize1024,
