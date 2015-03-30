@@ -64,7 +64,7 @@ func accountRegister(w http.ResponseWriter, r *http.Request) {
 	common.RespondSuccess(w, &models.Message{User: user})
 }
 
-var accountUpdate = common.AuthHandlerFunc(func(id string, w http.ResponseWriter, r *http.Request) {
+var accountUpdate = common.AuthHandlerFunc(func(id int64, w http.ResponseWriter, r *http.Request) {
 	user, err := common.RequestUserMessage(r)
 	if err != nil {
 		common.RespondClientError(w, err)

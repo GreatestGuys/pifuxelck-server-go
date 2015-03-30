@@ -16,7 +16,7 @@ func InstallContactHandlers(r *mux.Router) {
 		Methods("GET")
 }
 
-var contactLookup = common.AuthHandlerFunc(func(_ string, w http.ResponseWriter, r *http.Request) {
+var contactLookup = common.AuthHandlerFunc(func(_ int64, w http.ResponseWriter, r *http.Request) {
 	displayName := mux.Vars(r)["displayName"]
 	user, userErr := models.ContactLookup(displayName)
 

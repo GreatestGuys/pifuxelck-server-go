@@ -14,7 +14,7 @@ func ContactLookup(name string) (user *User, userErr *UserError) {
 
 		row := db.QueryRow("SELECT id FROM Accounts WHERE display_name = ?", name)
 
-		var id string
+		var id int64
 		err := row.Scan(&id)
 		if err != nil {
 			log.Debugf("Unable to find user %#v.", name)

@@ -2,7 +2,6 @@ package models
 
 import (
 	"database/sql"
-	"fmt"
 
 	"github.com/GreatestGuys/pifuxelck-server-go/server/db"
 	"github.com/GreatestGuys/pifuxelck-server-go/server/log"
@@ -12,7 +11,7 @@ import (
 
 // User contains all of the identifying information of a pifuxelck player.
 type User struct {
-	ID          string `json:"id,omitempty"`
+	ID          int64  `json:"id,omitempty"`
 	DisplayName string `json:"display_name,omitempty"`
 	Password    string `json:"password,omitempty"`
 }
@@ -20,7 +19,7 @@ type User struct {
 // UserError is an error type that is returned when there is a problem
 // validating a user value.
 type UserError struct {
-	ID          []string `json:"id,omitempty"`
+	ID          []int64  `json:"id,omitempty"`
 	DisplayName []string `json:"display_name,omitempty"`
 	Password    []string `json:"password,omitempty"`
 }
@@ -78,7 +77,7 @@ func CreateUser(user User) (_ *User, userErr *UserError) {
 			return err
 		}
 
-		user.ID = fmt.Sprintf("%v", id)
+		user.ID = id
 		return nil
 	})
 
@@ -88,7 +87,7 @@ func CreateUser(user User) (_ *User, userErr *UserError) {
 
 // UserLookupByPassword takes a User object, and returns the ID of the user
 // with the matching display name and password.
-func UserLookupByPassword(user User) (id string, userErr *UserError) {
+func UserLookupByPassword(user User) (id int64, userErr *UserError) {
 	db.WithTx(func(tx *sql.Tx) error {
 		log.Debugf("Retrieving password hash for user %#v.", user.DisplayName)
 		row := tx.QueryRow(

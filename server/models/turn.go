@@ -27,7 +27,7 @@ type InboxEntry struct {
 // GetInboxEntriesForUser returns a list of all inbox entries that are
 // currently open for a given player. These inbox entries represent all the
 // turns that the user can currently take.
-func GetInboxEntriesForUser(userID string) ([]InboxEntry, *Errors) {
+func GetInboxEntriesForUser(userID int64) ([]InboxEntry, *Errors) {
 	var entries []InboxEntry
 	var errors *Errors
 
@@ -95,7 +95,7 @@ func GetInboxEntriesForUser(userID string) ([]InboxEntry, *Errors) {
 // UpdateDrawingTurn updates the users turn in a given game with a label. This
 // will fail if the user is not the next player, or if the next turn is not a
 // label turn.
-func UpdateDrawingTurn(userID, gameID string, drawing *Drawing) *Errors {
+func UpdateDrawingTurn(userID, gameID int64, drawing *Drawing) *Errors {
 	log.Debugf("User %v updating drawing in game %v.", userID, gameID)
 
 	var errors *Errors
@@ -142,7 +142,7 @@ func UpdateDrawingTurn(userID, gameID string, drawing *Drawing) *Errors {
 // UpdateLabelTurn updates the users turn in a given game with a drawing. This
 // will fail if the user is not the next player, or if the next turn is not a
 // drawing turn.
-func UpdateLabelTurn(userID, gameID, label string) *Errors {
+func UpdateLabelTurn(userID, gameID int64, label string) *Errors {
 	log.Debugf("User %v updating drawing in game %v.", userID, gameID)
 
 	var errors *Errors

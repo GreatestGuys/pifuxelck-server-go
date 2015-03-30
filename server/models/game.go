@@ -11,7 +11,7 @@ import (
 )
 
 type Game struct {
-	ID            string  `json:"id,omitempty"`
+	ID            int64   `json:"id,omitempty"`
 	Turns         []*Turn `json:"turns,omitempty"`
 	CompletedAt   int64   `json:"completed_at,omitempty"`
 	CompletedAtID string  `json:"completed_at_id,omitempty"`
@@ -34,7 +34,7 @@ func (e NewGameError) Error() string {
 // CreateGame creates a new game where the first turn is a label submitted by
 // the given user ID, and the remaining turns are alternating drawing and labels
 // with the players corresponding to the entries in the NewGame struct.
-func CreateGame(userID string, newGame NewGame) *Errors {
+func CreateGame(userID int64, newGame NewGame) *Errors {
 	if newGame.Label == "" {
 		log.Debugf("Failed to create game due to lack of label.")
 		return &Errors{NewGame: &NewGameError{
@@ -107,7 +107,7 @@ func CreateGame(userID string, newGame NewGame) *Errors {
 
 // UpdateGameCompletedAtTime takes a game ID and updates the completion time if
 // the game is over, and does nothing otherwise.
-func UpdateGameCompletedAtTime(gameID string) *Errors {
+func UpdateGameCompletedAtTime(gameID int64) *Errors {
 	log.Debugf("Checking if game %v needs a completed at id.", gameID)
 
 	err := db.WithTx(updateGameCompletedAtTimeInTx(gameID))
@@ -120,7 +120,7 @@ func UpdateGameCompletedAtTime(gameID string) *Errors {
 	return nil
 }
 
-func updateGameCompletedAtTimeInTx(gameID string) func(*sql.Tx) error {
+func updateGameCompletedAtTimeInTx(gameID int64) func(*sql.Tx) error {
 	return func(tx *sql.Tx) error {
 		// This query is a conditional insert that will create an entry in the
 		// GamesCompletedAt table if and only if the game with id gameID is
@@ -247,9 +247,9 @@ func ReapExpiredTurns() *Errors {
 			return err
 		}
 
-		gameIDs := make([]string, 0)
+		gameIDs := make([]int64, 0)
 		for rows.Next() {
-			var id string
+			var id int64
 			err = rows.Scan(&id)
 			if err != nil {
 				rows.Close()
@@ -290,7 +290,7 @@ func ReapExpiredTurns() *Errors {
 
 // CompletedGames returns a list of games that a given user has participated in
 // and that have been completed since the given completed at ID.
-func CompletedGames(userID, sinceID string) ([]Game, *Errors) {
+func CompletedGames(userID, sinceID int64) ([]Game, *Errors) {
 	var games []Game
 	var errors *Errors
 	errMsg := []string{"Unable to query history at this time."}
@@ -331,11 +331,12 @@ func CompletedGames(userID, sinceID string) ([]Game, *Errors) {
 			return
 		}
 
-		gameIDToGame := make(map[string]*Game)
+		gameIDToGame := make(map[int64]*Game)
 
 		defer rows.Close()
 		for rows.Next() {
-			var gameID, completedAtID string
+			var gameID int64
+			var completedAtID string
 			var completedAt int64
 			var drawingJson string
 			turn := &Turn{}

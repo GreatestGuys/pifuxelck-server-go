@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/GreatestGuys/pifuxelck-server-go/server/handlers/common"
 	"github.com/GreatestGuys/pifuxelck-server-go/server/log"
@@ -19,7 +20,7 @@ func InstallGameHandlers(r *mux.Router) {
 		Methods("GET")
 }
 
-var gameCreate = common.AuthHandlerFunc(func(id string, w http.ResponseWriter, r *http.Request) {
+var gameCreate = common.AuthHandlerFunc(func(id int64, w http.ResponseWriter, r *http.Request) {
 	newGame, err := common.RequestNewGameMessage(r)
 	if err != nil {
 		common.RespondClientError(w, err)
@@ -38,7 +39,7 @@ var gameCreate = common.AuthHandlerFunc(func(id string, w http.ResponseWriter, r
 	common.RespondSuccessNoContent(w)
 })
 
-var gameInbox = common.AuthHandlerFunc(func(id string, w http.ResponseWriter, r *http.Request) {
+var gameInbox = common.AuthHandlerFunc(func(id int64, w http.ResponseWriter, r *http.Request) {
 	models.ReapExpiredTurns()
 
 	log.Debugf("Attempting to query users inbox.")
@@ -53,14 +54,14 @@ var gameInbox = common.AuthHandlerFunc(func(id string, w http.ResponseWriter, r 
 	common.RespondSuccess(w, &models.Message{InboxEntries: entries})
 })
 
-var gamePlay = common.AuthHandlerFunc(func(userID string, w http.ResponseWriter, r *http.Request) {
+var gamePlay = common.AuthHandlerFunc(func(userID int64, w http.ResponseWriter, r *http.Request) {
 	turn, err := common.RequestTurnMessage(r)
 	if err != nil {
 		common.RespondClientError(w, err)
 		return
 	}
 
-	gameID := mux.Vars(r)["id"]
+	gameID, _ := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
 
 	log.Debugf("User %v is taking their turn in game %v.", userID, gameID)
 
@@ -92,8 +93,8 @@ var gamePlay = common.AuthHandlerFunc(func(userID string, w http.ResponseWriter,
 	common.RespondSuccessNoContent(w)
 })
 
-var gameHistory = common.AuthHandlerFunc(func(userID string, w http.ResponseWriter, r *http.Request) {
-	sinceID := mux.Vars(r)["id"]
+var gameHistory = common.AuthHandlerFunc(func(userID int64, w http.ResponseWriter, r *http.Request) {
+	sinceID, _ := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
 
 	log.Debugf("User %v is requesting history since %v.", userID, sinceID)
 

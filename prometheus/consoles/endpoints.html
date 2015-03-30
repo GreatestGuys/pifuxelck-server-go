@@ -11,7 +11,7 @@
     node: document.querySelector('#qpsGraph'),
     expr: 'rate(http_request_size_bytes_count{job="pifuxelck-server-go",handler!="prometheus"}[5m])',
     renderer: 'area',
-    min: 'auto',
+    min: 'line',
     yAxisFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
     yHoverFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
     yTitle: 'QPS'

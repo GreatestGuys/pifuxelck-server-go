@@ -24,7 +24,7 @@ cd /srv/pifuxelck/
   --mysql-port 3306 \
   --mysql-user pifuxelck \
   --mysql-password $PASS \
-  --mysql-db pifuxelck 2>stderr > pifuxelck-server-go.log < /dev/null &
+  --mysql-db pifuxelck 2> pifuxelck-server-go.log > /dev/null < /dev/null &
 exit
 EOF
 

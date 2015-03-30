@@ -12,7 +12,7 @@ import (
 // NewAuthToken creates a new authentication token for the given user ID.
 // Presenting this token in the x-pifuxelck-auth header will authenticate the
 // request as coming from the user with the given id.
-func NewAuthToken(id string) (auth string, errors *Errors) {
+func NewAuthToken(id int64) (auth string, errors *Errors) {
 	pruneAuthTokens()
 
 	log.Debugf("Generating new random token for user with ID %v.", id)
@@ -40,7 +40,7 @@ func NewAuthToken(id string) (auth string, errors *Errors) {
 
 // AuthTokenLookup takes an authentication token an returns the user ID that
 // corresponds to the given token.
-func AuthTokenLookup(auth string) (id string, errors *Errors) {
+func AuthTokenLookup(auth string) (id int64, errors *Errors) {
 	pruneAuthTokens()
 
 	db.WithTx(func(tx *sql.Tx) error {
