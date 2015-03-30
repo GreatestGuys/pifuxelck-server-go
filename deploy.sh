@@ -28,34 +28,28 @@ cd /srv/pifuxelck/
 exit
 EOF
 
-echo ""
 echo -e "${BWhite}[+] ${BYellow}Building the executable...${Color_Off}"
 rm pifuxelck-server-go
 go build github.com/GreatestGuys/pifuxelck-server-go
 
-echo ""
 echo -e "${BWhite}[+] ${BYellow}Killing existing server instances...${Color_Off}"
 ssh \
   $USER@everythingissauce.com \
   "sudo su -c 'killall pifuxelck-server-go' pifuxelck"
 
-echo ""
 echo -e "${BWhite}[+] ${BYellow}Deploying the executable...${Color_Off}"
 scp \
   pifuxelck-server-go \
   $USER@everythingissauce.com:/srv/pifuxelck/pifuxelck-server-go
 
-echo ""
 echo -e "${BWhite}[+] ${BYellow}Deploying start up script...${Color_Off}"
 scp $TMP_FILE $USER@everythingissauce.com:${TMP_FILE}
 
-echo ""
 echo -e "${BWhite}[+] ${BYellow}Running start up script...${Color_Off}"
 ssh \
   $USER@everythingissauce.com \
   "chmod a+rxw $TMP_FILE && sudo su -c $TMP_FILE pifuxelck && rm $TMP_FILE"
 
-echo ""
 echo -e "${BWhite}[+] ${BGreen}All done!${Color_Off}"
 
 rm $TMP_FILE

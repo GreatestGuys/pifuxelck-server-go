@@ -8,7 +8,7 @@
   <script>
   new PromConsole.Graph({
     node: document.querySelector('#errorRateGraph'),
-    expr: '(sum(endpoint_queries{status!="200"}) by (handler)) / (sum(endpoint_queries) by (handler))',
+    expr: '(sum(endpoint_queries{status!="200"}) by (handler)) / (1 + sum(endpoint_queries) by (handler))',
     renderer: 'line',
     min: '0',
     max: '1',
@@ -41,7 +41,7 @@
   <script>
   new PromConsole.Graph({
     node: document.querySelector('#dbGraph'),
-    expr: 'db_tx_rollbacks / (db_tx_commits + db_tx_rollbacks)',
+    expr: 'db_tx_rollbacks / (db_tx_commits + db_tx_rollbacks + 1)',
     renderer: 'area',
     min: '0',
     max: '1',
@@ -58,7 +58,7 @@
   <script>
   new PromConsole.Graph({
     node: document.querySelector('#authGraph'),
-    expr: 'auth_failure / (auth_success + auth_failure)',
+    expr: 'auth_failure / (auth_success + auth_failure + 1)',
     renderer: 'area',
     min: '0',
     max: '1',
