@@ -55,9 +55,16 @@ func InstallHandler(r *mux.Router, path string, f http.HandlerFunc) *mux.Route {
 	metricUncaughtPanics.WithLabelValues(path).Add(0)
 
 	metricEndpointQueries.WithLabelValues(path, "200").Add(0)
+	metricEndpointQueries.WithLabelValues(path, "204").Add(0)
 	metricEndpointQueries.WithLabelValues(path, "403").Add(0)
 	metricEndpointQueries.WithLabelValues(path, "422").Add(0)
 	metricEndpointQueries.WithLabelValues(path, "500").Add(0)
+
+	addCorsHeaders := func(w http.ResponseWriter) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "x-pifuxelck-auth")
+	}
 
 	wrapper := func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
@@ -66,8 +73,18 @@ func InstallHandler(r *mux.Router, path string, f http.HandlerFunc) *mux.Route {
 				log.Errorf("Uncaught panic, %v", r)
 			}
 		}()
+
+		addCorsHeaders(w)
 		f(responseWriterWrapper{handler: path, inner: w}, r)
 	}
 
+	cors := prometheus.InstrumentHandlerFunc(path,
+		func(w http.ResponseWriter, r *http.Request) {
+			wrappedWriter := responseWriterWrapper{handler: path, inner: w}
+			addCorsHeaders(wrappedWriter)
+			wrappedWriter.WriteHeader(http.StatusNoContent)
+		})
+
+	r.HandleFunc(path, cors).Methods("OPTIONS")
 	return r.HandleFunc(path, prometheus.InstrumentHandlerFunc(path, wrapper))
 }

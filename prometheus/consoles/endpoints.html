@@ -35,6 +35,24 @@
   </script>
 </div>
 
+<!--
+<h2>Latency (99th Quantile) </h2>
+
+<div id="latency99Graph" class="dash-graph">
+  <script>
+  new PromConsole.Graph({
+    node: document.querySelector('#latency99Graph'),
+    expr: 'http_request_duration_microseconds{quantile="0.99",job="pifuxelck-server-go",handler!="prometheus"}',
+    renderer: 'line',
+    min: 'auto',
+    yAxisFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+    yHoverFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+    yTitle: 'Microseconds'
+  })
+  </script>
+</div>
+-->
+
 <h2>Response Size</h2>
 
 <div id="txGraph" class="dash-graph">

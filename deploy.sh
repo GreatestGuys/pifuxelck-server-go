@@ -15,7 +15,6 @@ PASS=$2
 
 TMP_FILE=`mktemp /tmp/pifuxelck.XXXXXXX.sh`
 cat > $TMP_FILE << EOF
-echo ""
 echo -e "${BYellow}Launching new instance...${Color_Off}"
 cd /srv/pifuxelck/
 /usr/bin/nohup ./pifuxelck-server-go \
