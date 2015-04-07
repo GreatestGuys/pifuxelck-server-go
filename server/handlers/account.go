@@ -55,13 +55,23 @@ func accountRegister(w http.ResponseWriter, r *http.Request) {
 	log.Debugf("Attempting to register new user %#v.", user.DisplayName)
 	user, userErr := models.CreateUser(*user)
 	if userErr != nil {
-		log.Debugf("Failed to register user %#v.", user.DisplayName, user.ID)
+		log.Debugf("Failed to register user %#v.", user.DisplayName)
 		common.RespondClientError(w, &models.Errors{User: userErr})
 		return
 	}
 
+	log.Debugf("Creating new auth token for %#v.", user.DisplayName)
+	auth, errors := models.NewAuthToken(user.ID)
+	if errors != nil {
+		common.RespondClientError(w, errors)
+		return
+	}
+
 	log.Infof("Successfully registered new user %#v (%v).", user.DisplayName, user.ID)
-	common.RespondSuccess(w, &models.Message{User: user})
+	common.RespondSuccess(w, &models.Message{
+		User: user,
+		Meta: &models.Meta{Auth: auth},
+	})
 }
 
 var accountUpdate = common.AuthHandlerFunc(func(id int64, w http.ResponseWriter, r *http.Request) {
