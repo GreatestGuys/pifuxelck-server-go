@@ -13,14 +13,13 @@ import (
 // InstallGameHandlers takes a gorilla router and installs /games/* endpoints on
 // it.
 func InstallGameHandlers(r *mux.Router) {
+	common.InstallHandler(r, "/games", gameHistory).Methods("GET")
 	common.InstallHandler(r, "/games/{id:[0-9]+}", gameById).Methods("GET")
 	common.InstallHandler(r, "/games/inbox", gameInbox).Methods("GET")
 	common.InstallHandler(r, "/games/inbox/{id:[0-9]+}", gameInboxById).
 		Methods("GET")
 	common.InstallHandler(r, "/games/new", gameCreate).Methods("POST")
 	common.InstallHandler(r, "/games/play/{id:[0-9]+}", gamePlay).Methods("PUT")
-	common.InstallHandler(r, "/games/since/{id:[0-9]+}", gameHistory).
-		Methods("GET")
 }
 
 var gameCreate = common.AuthHandlerFunc(func(id int64, w http.ResponseWriter, r *http.Request) {
@@ -112,7 +111,16 @@ var gamePlay = common.AuthHandlerFunc(func(userID int64, w http.ResponseWriter, 
 })
 
 var gameHistory = common.AuthHandlerFunc(func(userID int64, w http.ResponseWriter, r *http.Request) {
-	sinceID, _ := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
+	sinceIDString := r.URL.Query().Get("since")
+	sinceID, err := strconv.ParseInt(sinceIDString, 10, 64)
+
+	if err != nil {
+		log.Warnf("Invalid since query parameter.")
+		common.RespondClientError(w, &models.Errors{
+			App: []string{"Invalid since ID."},
+		})
+		return
+	}
 
 	log.Debugf("User %v is requesting history since %v.", userID, sinceID)
 
