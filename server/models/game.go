@@ -288,6 +288,109 @@ func ReapExpiredTurns() *Errors {
 	return nil
 }
 
+func rowsToGames(rows *sql.Rows) []Game {
+	gameIDToGame := make(map[int64]*Game)
+
+	defer rows.Close()
+	for rows.Next() {
+		var gameID int64
+		var completedAtID string
+		var completedAt int64
+		var drawingJson string
+		turn := &Turn{}
+		err := rows.Scan(
+			&gameID, &completedAtID, &completedAt,
+			&turn.Player, &turn.IsDrawing, &drawingJson, &turn.Label)
+		if err != nil {
+			log.Warnf("Unable to scan row, %v.", err.Error())
+			continue
+		}
+
+		// Only attempt to unmarshal the drawing if it is a drawing turn.
+		// Otherwise the drawing will be an empty string which is not valid JSON.
+		if turn.IsDrawing {
+			err := json.Unmarshal([]byte(drawingJson), &turn.Drawing)
+			if err != nil {
+				log.Warnf("Unable to unmarshal drawing, %v.", err.Error())
+				log.Verbosef("Offending drawing JSON: %#v.", drawingJson)
+				continue
+			}
+		}
+
+		game := gameIDToGame[gameID]
+		if game == nil {
+			game = &Game{}
+			game.ID = gameID
+			game.CompletedAtID = completedAtID
+			game.CompletedAt = completedAt
+			gameIDToGame[gameID] = game
+		}
+
+		game.Turns = append(game.Turns, turn)
+	}
+
+	games := make([]Game, 0, len(gameIDToGame))
+	for _, game := range gameIDToGame {
+		games = append(games, *game)
+	}
+
+	return games
+}
+
+// GameByID returns a game by ID.
+func GameByID(userID, gameID int64) (*Game, *Errors) {
+	var game *Game
+	var errors *Errors
+	errMsg := []string{"No such game."}
+	db.WithDB(func(db *sql.DB) {
+		rows, err := db.Query(
+			`SELECT
+			    Games.id,
+			    Games.completed_at_id,
+			    UNIX_TIMESTAMP(GamesCompletedAt.completed_at),
+			    Accounts.display_name,
+			    Turns.is_drawing,
+			    Turns.drawing,
+			    Turns.label
+			 From Turns as Turns
+			 INNER JOIN (
+			    SELECT id, completed_at_id
+			    FROM Games as Games
+			    INNER JOIN (
+			        SELECT game_id FROM Turns AS T WHERE T.account_id = ?
+			    ) AS T ON T.game_id = Games.id
+			    WHERE Games.completed_at_id IS NOT NULL AND Games.id = ?
+			 ) AS Games ON Turns.game_id = Games.id
+			 INNER JOIN (
+			    SELECT id, display_name
+			    FROM Accounts as Accounts
+			 ) AS Accounts ON Turns.account_id = Accounts.id
+			 INNER JOIN (
+			    SELECT id, completed_at FROM GamesCompletedAt as GamesCompletedAt
+			 ) AS GamesCompletedAt ON GamesCompletedAt.id = Games.completed_at_id
+			 GROUP BY Turns.id
+			 ORDER BY Games.id ASC, Turns.id ASC`,
+			userID, gameID)
+		if err != nil {
+			log.Warnf("Unable to look up completed games, %v", err)
+			errors = &Errors{App: errMsg}
+			return
+		}
+
+		games := rowsToGames(rows)
+		if len(games) == 0 {
+			errors = &Errors{App: errMsg}
+			return
+		}
+		game = &games[0]
+	})
+
+	if errors != nil {
+		return nil, errors
+	}
+	return game, nil
+}
+
 // CompletedGames returns a list of games that a given user has participated in
 // and that have been completed since the given completed at ID.
 func CompletedGames(userID, sinceID int64) ([]Game, *Errors) {
@@ -331,50 +434,7 @@ func CompletedGames(userID, sinceID int64) ([]Game, *Errors) {
 			return
 		}
 
-		gameIDToGame := make(map[int64]*Game)
-
-		defer rows.Close()
-		for rows.Next() {
-			var gameID int64
-			var completedAtID string
-			var completedAt int64
-			var drawingJson string
-			turn := &Turn{}
-			err = rows.Scan(
-				&gameID, &completedAtID, &completedAt,
-				&turn.Player, &turn.IsDrawing, &drawingJson, &turn.Label)
-			if err != nil {
-				log.Warnf("Unable to scan row, %v.", err.Error())
-				continue
-			}
-
-			// Only attempt to unmarshal the drawing if it is a drawing turn.
-			// Otherwise the drawing will be an empty string which is not valid JSON.
-			if turn.IsDrawing {
-				err := json.Unmarshal([]byte(drawingJson), &turn.Drawing)
-				if err != nil {
-					log.Warnf("Unable to unmarshal drawing, %v.", err.Error())
-					log.Verbosef("Offending drawing JSON: %#v.", drawingJson)
-					continue
-				}
-			}
-
-			game := gameIDToGame[gameID]
-			if game == nil {
-				game = &Game{}
-				game.ID = gameID
-				game.CompletedAtID = completedAtID
-				game.CompletedAt = completedAt
-				gameIDToGame[gameID] = game
-			}
-
-			game.Turns = append(game.Turns, turn)
-		}
-
-		games = make([]Game, 0, len(gameIDToGame))
-		for _, game := range gameIDToGame {
-			games = append(games, *game)
-		}
+		games = rowsToGames(rows)
 	})
 
 	if errors != nil {

@@ -13,8 +13,11 @@ import (
 // InstallGameHandlers takes a gorilla router and installs /games/* endpoints on
 // it.
 func InstallGameHandlers(r *mux.Router) {
-	common.InstallHandler(r, "/games/new", gameCreate).Methods("POST")
+	common.InstallHandler(r, "/games/{id:[0-9]+}", gameById).Methods("GET")
 	common.InstallHandler(r, "/games/inbox", gameInbox).Methods("GET")
+	common.InstallHandler(r, "/games/inbox/{id:[0-9]+}", gameInboxById).
+		Methods("GET")
+	common.InstallHandler(r, "/games/new", gameCreate).Methods("POST")
 	common.InstallHandler(r, "/games/play/{id:[0-9]+}", gamePlay).Methods("PUT")
 	common.InstallHandler(r, "/games/since/{id:[0-9]+}", gameHistory).
 		Methods("GET")
@@ -45,13 +48,28 @@ var gameInbox = common.AuthHandlerFunc(func(id int64, w http.ResponseWriter, r *
 	log.Debugf("Attempting to query users inbox.")
 	entries, errors := models.GetInboxEntriesForUser(id)
 	if errors != nil {
-		log.Debugf("Failed to create new game.")
+		log.Debugf("Failed to query inbox.")
 		common.RespondClientError(w, errors)
 		return
 	}
 
 	log.Infof("User %v retrieved inbox.", id)
 	common.RespondSuccess(w, &models.Message{InboxEntries: entries})
+})
+
+var gameInboxById = common.AuthHandlerFunc(func(id int64, w http.ResponseWriter, r *http.Request) {
+	gameID, _ := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
+
+	log.Debugf("Attempting to query users inbox for game ID %v.", gameID)
+	entry, errors := models.GetInboxEntryByGameId(id, gameID)
+	if errors != nil {
+		log.Debugf("Failed to query inbox.")
+		common.RespondClientError(w, errors)
+		return
+	}
+
+	log.Infof("User %v retrieved inbox.", id)
+	common.RespondSuccess(w, &models.Message{InboxEntry: entry})
 })
 
 var gamePlay = common.AuthHandlerFunc(func(userID int64, w http.ResponseWriter, r *http.Request) {
@@ -106,4 +124,19 @@ var gameHistory = common.AuthHandlerFunc(func(userID int64, w http.ResponseWrite
 
 	log.Infof("User %v looked up history since %v.", userID, sinceID)
 	common.RespondSuccess(w, &models.Message{Games: games})
+})
+
+var gameById = common.AuthHandlerFunc(func(userID int64, w http.ResponseWriter, r *http.Request) {
+	gameID, _ := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
+
+	log.Debugf("User %v is requesting game %v.", userID, gameID)
+
+	game, errors := models.GameByID(userID, gameID)
+	if errors != nil {
+		common.RespondClientError(w, errors)
+		return
+	}
+
+	log.Infof("User %v looked up game %v.", userID, gameID)
+	common.RespondSuccess(w, &models.Message{Game: game})
 })

@@ -6,6 +6,7 @@ import (
 
 	"github.com/GreatestGuys/pifuxelck-server-go/server/db"
 	"github.com/GreatestGuys/pifuxelck-server-go/server/log"
+	"github.com/GreatestGuys/pifuxelck-server-go/server/models/common"
 )
 
 // Turn is struct that contains all the information of a single step in a
@@ -22,6 +23,68 @@ type Turn struct {
 type InboxEntry struct {
 	GameID       string `json:"game_id,omitempty"`
 	PreviousTurn *Turn  `json:"previous_turn,omitempty"`
+}
+
+func rowToInboxEntry(row common.Scannable) *InboxEntry {
+	turn := &Turn{}
+	entry := &InboxEntry{}
+	entry.PreviousTurn = turn
+
+	var turnID string
+	var drawingJson string
+	err := row.Scan(
+		&turnID, &entry.GameID, &drawingJson, &turn.Label, &turn.IsDrawing)
+	if err != nil {
+		log.Debugf("Unable to scan row, %v.", err.Error())
+		return nil
+	}
+
+	// Only attempt to unmarshal the drawing if it is a drawing turn.
+	// Otherwise the drawing will be an empty string which is not valid JSON.
+	if turn.IsDrawing {
+		err := json.Unmarshal([]byte(drawingJson), &turn.Drawing)
+		if err != nil {
+			log.Debugf("Unable to unmarshal drawing, %v.", err.Error())
+			return nil
+		}
+	}
+
+	return entry
+}
+
+// GetInboxEntryByGameId returns an inbox entry for the given user and game id.
+func GetInboxEntryByGameId(userID, gameID int64) (*InboxEntry, *Errors) {
+	var entry *InboxEntry
+	var errors *Errors
+
+	var generalError = []string{"Unable to query inbox at this time."}
+	db.WithDB(func(db *sql.DB) {
+		log.Debugf("Querying for all available inbox entries for %v.", userID)
+		row := db.QueryRow(
+			`SELECT T.id, T.game_id, T.drawing, T.label, T.is_drawing
+			 FROM Turns AS T
+			 INNER JOIN (
+			   SELECT MIN(CT.id), CT.game_id, CT.account_id
+			   FROM Turns AS CT
+			   WHERE is_complete = 0
+			   GROUP BY CT.game_id
+			 ) AS CT ON CT.game_id = T.game_id
+			 INNER JOIN (
+			   SELECT MAX(PT.id) as previous_turn_id, PT.game_id
+			   FROM Turns AS PT
+			   WHERE is_complete = 1
+			   GROUP BY PT.game_id
+			 ) AS PT ON PT.previous_turn_id = T.id
+			 WHERE CT.account_id = ? AND CT.game_id = ?`,
+			userID, gameID)
+
+		entry = rowToInboxEntry(row)
+		if entry == nil {
+			errors = &Errors{App: generalError}
+		}
+	})
+
+	return entry, errors
 }
 
 // GetInboxEntriesForUser returns a list of all inbox entries that are
@@ -59,30 +122,10 @@ func GetInboxEntriesForUser(userID int64) ([]InboxEntry, *Errors) {
 
 		entries = make([]InboxEntry, 0, 8)
 		for rows.Next() {
-			turn := &Turn{}
-			entry := InboxEntry{}
-			entry.PreviousTurn = turn
-
-			var turnID string
-			var drawingJson string
-			err := rows.Scan(
-				&turnID, &entry.GameID, &drawingJson, &turn.Label, &turn.IsDrawing)
-			if err != nil {
-				log.Debugf("Unable to scan row, %v.", err.Error())
-				continue
+			entry := rowToInboxEntry(rows)
+			if entry != nil {
+				entries = append(entries, *entry)
 			}
-
-			// Only attempt to unmarshal the drawing if it is a drawing turn.
-			// Otherwise the drawing will be an empty string which is not valid JSON.
-			if turn.IsDrawing {
-				err := json.Unmarshal([]byte(drawingJson), &turn.Drawing)
-				if err != nil {
-					log.Debugf("Unable to unmarshal drawing, %v.", err.Error())
-					continue
-				}
-			}
-
-			entries = append(entries, entry)
 		}
 		rows.Close()
 
