@@ -9,7 +9,8 @@
   <script>
   new PromConsole.Graph({
     node: document.querySelector('#qpsGraph'),
-    expr: '(sum(http_request_size_bytes_count{job="pifuxelck-server-go",handler!="prometheus"}) by (job) - sum(http_request_size_bytes_count{job="pifuxelck-server-go",handler!="prometheus"} offset 5m) by (job)) / 300',
+    expr:
+    '(sum(http_request_duration_microseconds_count{job!="prometheus",handler!="prometheus"}) by (job) - sum(http_request_duration_microseconds_count{job!="prometheus",handler!="prometheus"} offset 5m) by (job)) / 300',
     renderer: 'line',
     min: '0',
     yAxisFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
@@ -25,7 +26,7 @@
   <script>
   new PromConsole.Graph({
     node: document.querySelector('#memGraph'),
-    expr: 'process_resident_memory_bytes{job="pifuxelck-server-go"}',
+    expr: 'ghc_current_bytes_used or process_resident_memory_bytes{job!="prometheus"}',
     renderer: 'area',
     min: '0',
     max:
@@ -47,7 +48,7 @@
   <script>
   new PromConsole.Graph({
     node: document.querySelector('#cpuGraph'),
-    expr: 'rate(process_cpu_seconds_total{job="pifuxelck-server-go"}[5m])',
+    expr: 'rate(process_cpu_seconds_total{job!="prometheus"}[5m]) or rate(ghc_cpu_seconds[5m])',
     renderer: 'area',
     min: '0',
     yAxisFormatter: PromConsole.NumberFormatter.humanize1024,

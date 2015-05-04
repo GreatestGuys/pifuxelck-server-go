@@ -9,7 +9,7 @@
   <script>
   new PromConsole.Graph({
     node: document.querySelector('#qpsGraph'),
-    expr: 'rate(http_request_size_bytes_count{job="pifuxelck-server-go",handler!="prometheus"}[5m])',
+    expr: 'rate(http_request_duration_microseconds_count{job!="prometheus",handler!="prometheus"}[5m])',
     renderer: 'line',
     min: 0,
     yAxisFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
@@ -25,7 +25,7 @@
   <script>
   new PromConsole.Graph({
     node: document.querySelector('#latencyGraph'),
-    expr: 'rate(http_request_duration_microseconds_sum{job="pifuxelck-server-go",handler!="prometheus"}[5m]) / (rate(http_request_duration_microseconds_count{job="pifuxelck-server-go",handler!="prometheus"}[5m]) + .0001)',
+    expr: 'rate(http_request_duration_microseconds_sum{job!="prometheus",handler!="prometheus"}[5m]) / (rate(http_request_duration_microseconds_count{job!="prometheus",handler!="prometheus"}[5m]) + .0001)',
     renderer: 'line',
     min: 'auto',
     yAxisFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
@@ -42,7 +42,7 @@
   <script>
   new PromConsole.Graph({
     node: document.querySelector('#latency99Graph'),
-    expr: 'http_request_duration_microseconds{quantile="0.99",job="pifuxelck-server-go",handler!="prometheus"}',
+    expr: 'http_request_duration_microseconds{quantile="0.99",job!="prometheus",handler!="prometheus"}',
     renderer: 'line',
     min: 'auto',
     yAxisFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
@@ -59,7 +59,7 @@
   <script>
   new PromConsole.Graph({
     node: document.querySelector('#txGraph'),
-    expr: 'rate(http_response_size_bytes_sum{job="pifuxelck-server-go",handler!="prometheus"}[5m]) / (rate(http_response_size_bytes_count{job="pifuxelck-server-go",handler!="prometheus"}[5m]) + .0001)',
+    expr: 'rate(http_response_size_bytes_sum{job!="prometheus",handler!="prometheus"}[5m]) / (rate(http_response_size_bytes_count{job!="prometheus",handler!="prometheus"}[5m]) + .0001)',
     renderer: 'line',
     min: 'auto',
     yAxisFormatter: PromConsole.NumberFormatter.humanize1024,
@@ -75,7 +75,7 @@
   <script>
   new PromConsole.Graph({
     node: document.querySelector('#rxGraph'),
-    expr: 'rate(http_request_size_bytes_sum{job="pifuxelck-server-go",handler!="prometheus"}[5m]) / (rate(http_response_size_bytes_count{job="pifuxelck-server-go",handler!="prometheus"}[5m]) + .0001)',
+    expr: 'rate(http_request_size_bytes_sum{job!="prometheus",handler!="prometheus"}[5m]) / (rate(http_response_size_bytes_count{job!="prometheus",handler!="prometheus"}[5m]) + .0001)',
     renderer: 'line',
     min: 'auto',
     yAxisFormatter: PromConsole.NumberFormatter.humanize1024,
