@@ -46,16 +46,16 @@ func accountLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func accountRegister(w http.ResponseWriter, r *http.Request) {
-	user, err := common.RequestUserMessage(r)
+	origUser, err := common.RequestUserMessage(r)
 	if err != nil {
 		common.RespondClientError(w, err)
 		return
 	}
 
-	log.Debugf("Attempting to register new user %#v.", user.DisplayName)
-	user, userErr := models.CreateUser(*user)
+	log.Debugf("Attempting to register new user %#v.", origUser.DisplayName)
+	user, userErr := models.CreateUser(*origUser)
 	if userErr != nil {
-		log.Debugf("Failed to register user %#v.", user.DisplayName)
+		log.Debugf("Failed to register user %#v.", origUser.DisplayName)
 		common.RespondClientError(w, &models.Errors{User: userErr})
 		return
 	}
